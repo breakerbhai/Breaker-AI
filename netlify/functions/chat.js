@@ -1,5 +1,5 @@
 // netlify/functions/chat.js
-// Handles POST /api/chat -> routes to OpenAI or Gemini depending on "model"
+// Handles POST /api/chat -> routes to OpenAI, Gemini, or Groq depending on "model"
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -24,6 +24,8 @@ exports.handler = async (event) => {
       reply = await callGemini(message);
     } else if (model === "gpt5") {
       reply = await callOpenAI(message);
+    } else if (model === "deepseek") {
+      reply = await callGroq(message);
     } else {
       return {
         statusCode: 400,
@@ -52,6 +54,23 @@ async function callOpenAI(message) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message || "OpenAI request failed");
   return data.choices?.[0]?.message?.content || "No response from OpenAI";
+}
+
+async function callGroq(message) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_KEY}`
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-20b",
+      messages: [{ role: "user", content: message }]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Groq request failed");
+  return data.choices?.[0]?.message?.content || "No response from Groq";
 }
 
 async function callGemini(message) {
