@@ -40,7 +40,7 @@
   button{ font-family:inherit; cursor:pointer; }
   input{ font-family:inherit; }
 
-  .app{ display:flex; height:100vh; position:relative; }
+  .app{ display:flex; height:100vh; height:100dvh; height:calc(var(--app-height, 100vh)); position:relative; }
   .app::before{
     content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
     background:
@@ -467,6 +467,17 @@ const MODELS = [
   { id:'mistral',  name:'Mistral',   provider:'Mistral AI', accent:'var(--mistral)',  shadow:'rgba(255,155,77,.4)',  live:false },
 ];
 
+/* ---------- reliable mobile viewport height fix ---------- */
+function setAppHeight(){
+  document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', setAppHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setAppHeight);
+}
+
 let activeId = 'claude';
 
 function roundelHTML(m, sizeClass){
@@ -708,6 +719,7 @@ document.getElementById('thinkingPill').addEventListener('click', function(){
 </script>
 </body>
 </html>
+
 
 
 
