@@ -202,6 +202,31 @@
   .composer-hint{ font-size:11.5px; color:var(--text-3); display:flex; align-items:center; gap:6px; }
   .composer-hint .mini-roundel{ width:18px; height:18px; }
   .btn-row{ display:flex; gap:8px; }
+
+  .attach-btn{
+    width:34px; height:34px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.05); border:1px solid var(--border); color:var(--text-2);
+    transition:border-color .16s var(--ease), color .16s var(--ease), background .16s var(--ease);
+  }
+  .attach-btn:hover{ border-color:rgba(34,211,238,.4); color:var(--cyan-soft); background:rgba(34,211,238,.08); }
+
+  .image-preview-chip{
+    display:flex; align-items:center; gap:9px; max-width:640px; width:100%;
+    background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:13px;
+    padding:7px 10px; margin-bottom:10px;
+  }
+  .image-preview-chip img{ width:36px; height:36px; object-fit:cover; border-radius:9px; flex-shrink:0; }
+  .image-preview-name{ flex:1; min-width:0; font-size:12px; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .image-preview-remove{
+    background:none; border:none; color:var(--text-3); font-size:18px; line-height:1; padding:4px 8px; border-radius:8px; flex-shrink:0;
+  }
+  .image-preview-remove:hover{ color:var(--text-1); background:rgba(255,255,255,.08); }
+
+  .msg-image{
+    max-width:230px; max-height:230px; width:100%; object-fit:cover; border-radius:16px;
+    border:1px solid var(--border); display:block;
+  }
+  .msg-user .msg-image{ border-radius:16px; }
   .btn{
     display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700;
     padding:9px 16px; border-radius:11px; border:none; font-family:inherit;
@@ -244,6 +269,14 @@
   }
 
   .msg-typing .msg-bubble{ display:flex; gap:5px; align-items:center; padding:14px 18px; }
+
+  .msg-speak-btn{
+    display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px;
+    background:none; border:1px solid transparent; color:var(--text-3); flex-shrink:0; margin-left:4px;
+    transition:background .14s var(--ease), color .14s var(--ease), border-color .14s var(--ease);
+  }
+  .msg-speak-btn:hover{ background:rgba(255,255,255,.06); color:var(--cyan-soft); }
+  .msg-speak-btn.speaking{ color:var(--cyan-soft); border-color:rgba(34,211,238,.3); background:rgba(34,211,238,.08); }
   .typing-dot{ width:6px; height:6px; border-radius:50%; background:var(--text-2); animation:typingBounce 1.1s infinite ease-in-out; }
   .typing-dot:nth-child(2){ animation-delay:.15s; }
   .typing-dot:nth-child(3){ animation-delay:.3s; }
@@ -257,12 +290,12 @@
   .reply-bar{
     max-width:640px; margin:0 auto; display:flex; align-items:center; gap:10px;
     background:rgba(15,20,34,.85); border:1px solid var(--border); border-radius:16px;
-    padding:6px 6px 6px 16px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    padding:6px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
     transition:border-color .18s var(--ease);
   }
   .reply-bar:focus-within{ border-color:rgba(34,211,238,.4); }
   .reply-bar input{
-    flex:1; min-width:0; background:transparent; border:none; outline:none; color:var(--text-1); font-size:13.5px; padding:10px 0;
+    flex:1; min-width:0; background:transparent; border:none; outline:none; color:var(--text-1); font-size:13.5px; padding:10px 0 10px 6px;
   }
   .reply-bar input::placeholder{ color:var(--text-3); }
   .thinking-pill{
@@ -329,6 +362,7 @@
 <body>
 
 <div class="app">
+<input type="file" id="imageFileInput" accept="image/*" style="display:none" />
 
   <!-- ============ SIDEBAR ============ -->
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -370,6 +404,7 @@
     <div class="chat-center" id="chatCenter">
       <div class="chat-thread" id="chatThread"></div>
       <div class="composer-card" id="composerCard">
+        <div id="composerPreviewSlot"></div>
         <textarea class="composer-input" rows="2" placeholder="Ask anything — code, writing, research, or just a quick question." id="mainInput"></textarea>
         <div class="chip-row">
           <button class="chip" data-fill="Explain quantum computing">
@@ -387,6 +422,9 @@
             <span>Answering as <strong id="hintModelName" style="color:var(--text-1)">Claude</strong></span>
           </div>
           <div class="btn-row">
+            <button class="attach-btn" id="composerAttachBtn" type="button" aria-label="Attach image">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"/></svg>
+            </button>
             <button class="btn btn-break" id="breakBtn">Break</button>
             <button class="btn btn-ask" id="askBtn">Ask
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -399,7 +437,11 @@
     <div class="disclaimer">Breaker AI can make mistakes. Consider checking important information.</div>
 
     <div class="reply-dock">
+      <div id="replyPreviewSlot"></div>
       <div class="reply-bar">
+        <button class="attach-btn" id="replyAttachBtn" type="button" aria-label="Attach image">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"/></svg>
+        </button>
         <input type="text" id="replyInput" placeholder="Reply to Claude..." aria-label="Reply input" />
         <button class="thinking-pill" id="thinkingPill">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -586,6 +628,80 @@ const replySendBtn = document.querySelector('.reply-send');
 
 let conversationStarted = false;
 
+/* ---------- image attachment ---------- */
+const imageFileInput = document.getElementById('imageFileInput');
+const composerAttachBtn = document.getElementById('composerAttachBtn');
+const replyAttachBtn = document.getElementById('replyAttachBtn');
+const composerPreviewSlot = document.getElementById('composerPreviewSlot');
+const replyPreviewSlot = document.getElementById('replyPreviewSlot');
+let pendingImage = null; // { dataUrl, mimeType, name }
+
+/* ---------- text-to-speech (free, browser-native) ---------- */
+let currentSpeakBtn = null;
+
+function toggleSpeak(text, btn){
+  if (!('speechSynthesis' in window)) {
+    alert('Text-to-speech is not supported on this browser.');
+    return;
+  }
+
+  const isThisOneSpeaking = btn.classList.contains('speaking');
+  window.speechSynthesis.cancel();
+  if (currentSpeakBtn) currentSpeakBtn.classList.remove('speaking');
+
+  if (isThisOneSpeaking) {
+    currentSpeakBtn = null;
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.onend = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; };
+  utterance.onerror = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; };
+
+  btn.classList.add('speaking');
+  currentSpeakBtn = btn;
+  window.speechSynthesis.speak(utterance);
+}
+
+function openFilePicker(){ imageFileInput.value = ''; imageFileInput.click(); }
+composerAttachBtn.addEventListener('click', openFilePicker);
+replyAttachBtn.addEventListener('click', openFilePicker);
+
+imageFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+  if (file.size > 8 * 1024 * 1024) { alert('Please choose an image under 8MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    pendingImage = { dataUrl: reader.result, mimeType: file.type, name: file.name };
+    renderImagePreview();
+  };
+  reader.readAsDataURL(file);
+});
+
+function renderImagePreview(){
+  composerPreviewSlot.innerHTML = '';
+  replyPreviewSlot.innerHTML = '';
+  if (!pendingImage) return;
+
+  const chip = document.createElement('div');
+  chip.className = 'image-preview-chip';
+  chip.innerHTML = `
+    <img src="${pendingImage.dataUrl}" alt="${pendingImage.name}" />
+    <span class="image-preview-name">${pendingImage.name}</span>
+    <button class="image-preview-remove" type="button" aria-label="Remove image">&times;</button>
+  `;
+  chip.querySelector('.image-preview-remove').addEventListener('click', () => {
+    pendingImage = null;
+    renderImagePreview();
+  });
+
+  const target = conversationStarted ? replyPreviewSlot : composerPreviewSlot;
+  target.appendChild(chip);
+}
+
 function startConversation(){
   if (conversationStarted) return;
   conversationStarted = true;
@@ -598,13 +714,22 @@ function scrollThreadToBottom(){
   chatCenter.scrollTop = chatCenter.scrollHeight;
 }
 
-function appendUserMessage(text){
+function appendUserMessage(text, image){
   const el = document.createElement('div');
   el.className = 'msg msg-user';
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-  bubble.textContent = text;
-  el.appendChild(bubble);
+  if (image) {
+    const img = document.createElement('img');
+    img.className = 'msg-image';
+    img.src = image.dataUrl;
+    img.alt = image.name || 'attached image';
+    el.appendChild(img);
+  }
+  if (text) {
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+    el.appendChild(bubble);
+  }
   chatThread.appendChild(el);
   scrollThreadToBottom();
 }
@@ -629,6 +754,15 @@ function appendAiMessage(text, modelId, isError){
   const meta = document.createElement('div');
   meta.className = 'msg-meta';
   meta.innerHTML = `<span class="mini-roundel" style="color:${m.accent}">${ICONS[m.id]}</span>${m.name}`;
+  if (!isError && text) {
+    const speakBtn = document.createElement('button');
+    speakBtn.type = 'button';
+    speakBtn.className = 'msg-speak-btn';
+    speakBtn.setAttribute('aria-label', 'Read message aloud');
+    speakBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>`;
+    speakBtn.addEventListener('click', () => toggleSpeak(text, speakBtn));
+    meta.appendChild(speakBtn);
+  }
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.textContent = text;
@@ -639,18 +773,25 @@ function appendAiMessage(text, modelId, isError){
 }
 
 async function sendMessage(promptText){
-  if (!promptText) return;
+  if (!promptText && !pendingImage) return;
   const modelForThisMessage = activeId;
+  const imageToSend = pendingImage;
+  pendingImage = null;
+  renderImagePreview();
 
   startConversation();
-  appendUserMessage(promptText);
+  appendUserMessage(promptText, imageToSend);
   const typingEl = appendTypingBubble(modelForThisMessage);
 
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: promptText, model: modelForThisMessage })
+      body: JSON.stringify({
+        message: promptText || '',
+        model: modelForThisMessage,
+        image: imageToSend ? imageToSend.dataUrl : null
+      })
     });
 
     const data = await response.json();
@@ -669,7 +810,7 @@ async function sendMessage(promptText){
 
 askBtn.addEventListener('click', async () => {
   const promptText = mainInputEl.value.trim();
-  if (!promptText) { alert('Please enter a prompt before sending.'); return; }
+  if (!promptText && !pendingImage) { alert('Please enter a prompt or attach an image before sending.'); return; }
 
   const originalHTML = askBtn.innerHTML;
   askBtn.innerText = 'Thinking...';
@@ -684,7 +825,7 @@ askBtn.addEventListener('click', async () => {
 
 function sendReply(){
   const text = replyInput.value.trim();
-  if (!text) return;
+  if (!text && !pendingImage) return;
   replyInput.value = '';
   sendMessage(text);
 }
@@ -721,6 +862,7 @@ document.getElementById('thinkingPill').addEventListener('click', function(){
 </script>
 </body>
 </html>
+
 
 
 
