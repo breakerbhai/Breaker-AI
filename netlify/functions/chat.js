@@ -98,7 +98,7 @@ async function callGemini(message, image) {
   }
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -109,3 +109,4 @@ async function callGemini(message, image) {
   if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini";
 }
+
