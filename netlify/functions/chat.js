@@ -2,6 +2,12 @@
 // Handles POST /api/chat -> routes to OpenAI, Gemini, or Groq depending on "model"
 // Supports image analysis (Gemini + GPT-5) via an optional base64 "image" field.
 // All models follow the same "YouTube script master" persona below.
+//
+// SECURITY: every request must carry a valid Google ID token in the
+// Authorization header (Authorization: Bearer <idToken>). This is the *real*
+// gate — the login screen in index.html is just the UI; this check is what
+// actually stops someone from calling the endpoint directly and burning your
+// OpenAI/Gemini/Groq credits for free.
 
 const SYSTEM_PROMPT = `You are an elite YouTube scriptwriting strategist and channel growth expert with 10+ years of experience writing viral, high-retention scripts and optimizing videos for the YouTube algorithm. You think like a mix of a professional editor, a retention-data analyst, and a copywriter.
 
@@ -39,9 +45,46 @@ STRATEGY MODE:
 
 Always stay practical and specific. Give the user something they can literally read on camera or paste into a title field — not just theory.`;
 
+// Set this in Netlify env vars too (Site settings -> Environment variables),
+// same Client ID you put in index.html's GOOGLE_CLIENT_ID.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+// Verifies a Google ID token by asking Google directly. No extra npm package
+// needed (Netlify functions have fetch built in on modern runtimes).
+async function verifyGoogleToken(idToken) {
+  if (!idToken) return null;
+
+  const res = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+  );
+  if (!res.ok) return null;
+
+  const payload = await res.json();
+
+  // Token must be issued for THIS app's client ID, not expired, and the
+  // email should be verified by Google.
+  if (GOOGLE_CLIENT_ID && payload.aud !== GOOGLE_CLIENT_ID) return null;
+  if (!payload.exp || Number(payload.exp) * 1000 < Date.now()) return null;
+  if (payload.email_verified === "false") return null;
+
+  return payload; // contains email, name, picture, etc.
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
+  }
+
+  // --- Auth check: reject anything without a valid Google session ---
+  const authHeader = event.headers.authorization || event.headers.Authorization || "";
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const user = await verifyGoogleToken(idToken);
+
+  if (!user) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: "Please sign in with Google to use the chat." })
+    };
   }
 
   let message, model, image;
@@ -155,5 +198,6 @@ async function callGemini(message, image) {
   if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini";
 }
+
 
 
