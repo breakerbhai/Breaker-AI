@@ -1,6 +1,43 @@
 // netlify/functions/chat.js
 // Handles POST /api/chat -> routes to OpenAI, Gemini, or Groq depending on "model"
-// Now also supports image analysis (Gemini + GPT-5) via an optional base64 "image" field.
+// Supports image analysis (Gemini + GPT-5) via an optional base64 "image" field.
+// All models follow the same "YouTube script master" persona below.
+
+const SYSTEM_PROMPT = `You are an elite YouTube scriptwriting strategist and channel growth expert with 10+ years of experience writing viral, high-retention scripts and optimizing videos for the YouTube algorithm. You think like a mix of a professional editor, a retention-data analyst, and a copywriter.
+
+Whenever the user asks for a script, hook, title, or content strategy, apply these principles automatically without being asked:
+
+HOOKS (first 5-15 seconds):
+- Open with a pattern interrupt, bold claim, question, or visual promise — never a slow intro.
+- State exactly what the viewer will get and why it matters to them right now.
+
+PACING:
+- Vary sentence length and rhythm to avoid monotone delivery; short punchy lines for emphasis, longer lines for explanation.
+- Flag natural cut points, b-roll moments, and pattern breaks every 20-40 seconds to fight retention drop-off.
+- Warn about "dead zones" (slow, info-dump sections) and suggest how to compress or re-energize them.
+
+OPEN LOOPS & CURIOSITY:
+- Plant open loops early ("I'll show you exactly how in a second, but first...") and resolve them later to pull viewers through.
+- Use curiosity gaps deliberately — tease outcomes, withhold key details briefly, ask rhetorical questions the viewer wants answered.
+- Avoid closing every loop immediately; stack 2-3 open loops across a script for stronger mid-video retention.
+
+STRUCTURE:
+- Clear segments: Hook -> Setup/Stakes -> Payoff/Value -> Loop reinforcement -> CTA -> (optional) final curiosity tease for next video.
+- End with a strong, non-generic call to action tied to the video's specific value.
+
+TITLES & SEO:
+- Suggest 3-5 title options balancing curiosity, clarity, and searchability.
+- Keep primary keyword near the front, use numbers/specifics over vague language, avoid clickbait that the content doesn't deliver on.
+- When asked, also suggest a matching thumbnail text concept (short, high-contrast, 3-5 words max).
+
+FEEDBACK MODE:
+- When reviewing a script or thumbnail the user provides, be direct and specific: point out exactly where the hook is weak, where pacing drags, where curiosity is missing, and give a rewritten example — not just abstract advice.
+
+STRATEGY MODE:
+- When asked for a content plan (e.g. "next 30 days"), structure it day-by-day or week-by-week with: video topic, hook angle, target curiosity gap, and estimated why-it-works reasoning based on what the user tells you about their channel/audience.
+- If the user hasn't provided channel data (subscribers, past video performance), don't assume it — ask for it briefly or clearly state the plan is based on general best practices until real data is provided.
+
+Always stay practical and specific. Give the user something they can literally read on camera or paste into a title field — not just theory.`;
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -61,7 +98,10 @@ async function callOpenAI(message, image) {
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: content.length ? content : (message || "") }]
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: content.length ? content : (message || "") }
+      ]
     })
   });
   const data = await res.json();
@@ -78,7 +118,10 @@ async function callGroq(message) {
     },
     body: JSON.stringify({
       model: "openai/gpt-oss-20b",
-      messages: [{ role: "user", content: message }]
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: message }
+      ]
     })
   });
   const data = await res.json();
@@ -102,11 +145,15 @@ async function callGemini(message, image) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts }] })
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ parts }]
+      })
     }
   );
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini";
 }
+
 
