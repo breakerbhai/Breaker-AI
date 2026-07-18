@@ -109,5 +109,3 @@ async function callGemini(message, image) {
   if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini";
 }
-
-}
