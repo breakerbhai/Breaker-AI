@@ -1,6 +1,7 @@
 // netlify/functions/chat.js
 // Handles POST /api/chat -> routes to OpenAI, Gemini, or Groq depending on "model"
 // Supports image analysis (Gemini + GPT-5) via an optional base64 "image" field.
+// Supports image GENERATION via Gemini's image model when "mode": "image" is sent.
 // All models follow the same "YouTube script master" persona below.
 //
 // SECURITY: every request must carry a valid Google ID token in the
@@ -87,9 +88,9 @@ exports.handler = async (event) => {
     };
   }
 
-  let message, model, image;
+  let message, model, image, mode;
   try {
-    ({ message, model, image } = JSON.parse(event.body || "{}"));
+    ({ message, model, image, mode } = JSON.parse(event.body || "{}"));
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
@@ -99,6 +100,20 @@ exports.handler = async (event) => {
   }
 
   try {
+    // --- Image GENERATION request (the "generate image" toggle in the UI) ---
+    // Only Gemini's image model is wired up for this, so any selected chat
+    // model routes here the same way when mode === "image".
+    if (mode === "image") {
+      if (!message) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Please describe the image you want to generate." })
+        };
+      }
+      const result = await callGeminiImageGen(message);
+      return { statusCode: 200, body: JSON.stringify({ reply: result.text, image: result.image }) };
+    }
+
     let reply;
 
     if (model === "gemini") {
@@ -198,6 +213,45 @@ async function callGemini(message, image) {
   if (!res.ok) throw new Error(data.error?.message || "Gemini request failed");
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini";
 }
+
+// --- Image generation via Gemini's image model ("Nano Banana" family) ---
+// Uses the same generateContent endpoint as text, but with a model that can
+// return an inline image part when responseModalities includes "IMAGE".
+async function callGeminiImageGen(message) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: message }] }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+      })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Gemini image request failed");
+
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  let text = "";
+  let imageDataUrl = null;
+
+  for (const part of parts) {
+    if (part.text) text += part.text;
+    const inline = part.inlineData || part.inline_data;
+    if (inline && inline.data) {
+      const mime = inline.mimeType || inline.mime_type || "image/png";
+      imageDataUrl = `data:${mime};base64,${inline.data}`;
+    }
+  }
+
+  if (!imageDataUrl) {
+    throw new Error("Gemini didn't return an image for that prompt. Try rephrasing it.");
+  }
+
+  return { text: text || "Yeh raha aapka image!", image: imageDataUrl };
+}
+
 
 
 
