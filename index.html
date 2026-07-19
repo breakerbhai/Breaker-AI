@@ -568,6 +568,7 @@
 const GOOGLE_CLIENT_ID = '178160083800-manv64pij1t6dtgr3pm15hulhslj5f7c.apps.googleusercontent.com';
 
 let currentUser = null; // { idToken, email, name, picture }
+let historyEnabled = false; // becomes true once the user is signed in (declared early: used inside unlockApp() which can run at page load for returning users)
 
 function decodeJwt(token){
   try {
@@ -1113,7 +1114,6 @@ function updateCopyChatBtnVisibility(){
 /* ---------- per-model chat history (saved locally per Google account) ---------- */
 let currentMessages = [];      // messages for the model currently open
 let suppressHistorySave = false;
-let historyEnabled = false;    // becomes true once the user is signed in
 
 function historyKey(modelId){
   if (!currentUser || !currentUser.email) return null;
