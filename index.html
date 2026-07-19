@@ -572,6 +572,7 @@ function handleGoogleCredential(response){
     document.getElementById('loginError').classList.add('show');
     return;
   }
+  const wasAlreadyIn = !!currentUser;
   currentUser = {
     idToken,
     email: payload.email,
@@ -579,14 +580,28 @@ function handleGoogleCredential(response){
     picture: payload.picture,
     exp: payload.exp // unix seconds
   };
-  sessionStorage.setItem('breakerAiUser', JSON.stringify(currentUser));
-  unlockApp();
+  localStorage.setItem('breakerAiUser', JSON.stringify(currentUser));
+  if (wasAlreadyIn) {
+    // This was just a silent background token refresh — no need to
+    // re-run the unlock/history-load flow, just keep the UI in sync.
+    renderUserChip();
+  } else {
+    unlockApp();
+  }
 }
 
 function unlockApp(){
   document.getElementById('loginGate').classList.add('hidden');
   document.getElementById('appRoot').classList.remove('gated');
   renderUserChip();
+  // Deferred: bootAuth() can call unlockApp() before later consts (chatThread,
+  // composerCard, activeId) are initialized, so history loading runs on the
+  // next tick once the whole script has finished its first pass.
+  setTimeout(() => {
+    historyEnabled = true;
+    loadAndRenderModelHistory(activeId);
+  }, 0);
+  startSilentRefreshTimer();
 }
 
 function renderUserChip(){
@@ -603,8 +618,9 @@ function renderUserChip(){
 }
 
 function signOut(){
-  sessionStorage.removeItem('breakerAiUser');
+  localStorage.removeItem('breakerAiUser');
   currentUser = null;
+  if (silentRefreshTimer) clearInterval(silentRefreshTimer);
   if (window.google && google.accounts && google.accounts.id) {
     google.accounts.id.disableAutoSelect();
   }
@@ -628,19 +644,36 @@ function initGoogleSignIn(){
   );
 }
 
+// Google's ID token only lasts ~1 hour. Instead of forcing a full manual
+// re-login every time it expires, we quietly ask Google for a fresh token
+// in the background (works as long as the browser is still signed into
+// Google) so people stay logged into Breaker AI across sessions.
+let silentRefreshTimer = null;
+function startSilentRefreshTimer(){
+  if (silentRefreshTimer) clearInterval(silentRefreshTimer);
+  silentRefreshTimer = setInterval(() => {
+    if (!currentUser) return;
+    const msLeft = (currentUser.exp * 1000) - Date.now();
+    if (msLeft < 10 * 60 * 1000 && window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt(); // silent One Tap refresh, no UI if already trusted
+    }
+  }, 5 * 60 * 1000); // check every 5 minutes
+}
+
 (function bootAuth(){
-  const saved = sessionStorage.getItem('breakerAiUser');
+  const saved = localStorage.getItem('breakerAiUser');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      // Google ID tokens are short-lived (~1hr); if expired, force a fresh sign-in.
+      // Google ID tokens are short-lived (~1hr). If it's expired, still try
+      // a silent refresh before giving up and asking for a full re-login.
       if (parsed.exp && parsed.exp * 1000 > Date.now()) {
         currentUser = parsed;
         unlockApp();
       } else {
-        sessionStorage.removeItem('breakerAiUser');
+        localStorage.removeItem('breakerAiUser');
       }
-    } catch (e) { sessionStorage.removeItem('breakerAiUser'); }
+    } catch (e) { localStorage.removeItem('breakerAiUser'); }
   }
   initGoogleSignIn();
 })();
@@ -786,6 +819,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDD();
 
 /* ---------- sync everything to active model ---------- */
 function setActive(id){
+  const previousId = activeId;
   activeId = id;
   const m = MODELS.find(x => x.id === id);
 
@@ -802,6 +836,10 @@ function setActive(id){
   document.getElementById('hintModelName').textContent = m.name;
 
   document.getElementById('replyInput').placeholder = `Reply to ${m.name}...`;
+
+  if (historyEnabled && id !== previousId) {
+    loadAndRenderModelHistory(id);
+  }
 }
 setActive('claude');
 
@@ -1059,6 +1097,56 @@ function updateCopyChatBtnVisibility(){
   btn.classList.toggle('show', chatTranscript.length > 0);
 }
 
+/* ---------- per-model chat history (saved locally per Google account) ---------- */
+let currentMessages = [];      // messages for the model currently open
+let suppressHistorySave = false;
+let historyEnabled = false;    // becomes true once the user is signed in
+
+function historyKey(modelId){
+  if (!currentUser || !currentUser.email) return null;
+  return 'breakerAiHistory:' + currentUser.email + ':' + modelId;
+}
+function getHistoryForModel(modelId){
+  const key = historyKey(modelId);
+  if (!key) return [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveCurrentModelHistory(){
+  if (suppressHistorySave || !currentUser) return;
+  const key = historyKey(activeId);
+  if (!key) return;
+  try { localStorage.setItem(key, JSON.stringify(currentMessages)); }
+  catch (e) { /* storage full or blocked — chat still works, just won't persist */ }
+}
+function loadAndRenderModelHistory(modelId){
+  chatThread.innerHTML = '';
+  chatTranscript = [];
+  currentMessages = [];
+  updateCopyChatBtnVisibility();
+
+  const saved = getHistoryForModel(modelId);
+  if (saved && saved.length) {
+    suppressHistorySave = true;
+    saved.forEach(msg => {
+      if (msg.role === 'user') appendUserMessage(msg.text, null);
+      else appendAiMessage(msg.text, msg.model || modelId, !!msg.isError);
+    });
+    suppressHistorySave = false;
+    conversationStarted = true;
+    composerCard.style.display = 'none';
+    chatThread.classList.add('active');
+    chatCenter.classList.add('has-messages');
+  } else {
+    conversationStarted = false;
+    composerCard.style.display = '';
+    chatThread.classList.remove('active');
+    chatCenter.classList.remove('has-messages');
+  }
+}
+
 function appendUserMessage(text, image){
   const el = document.createElement('div');
   el.className = 'msg msg-user';
@@ -1072,6 +1160,8 @@ function appendUserMessage(text, image){
 
   let currentText = text;
   const transcriptEntry = addToTranscript('You', text);
+  const historyEntry = { role: 'user', text };
+  if (text) { currentMessages.push(historyEntry); saveCurrentModelHistory(); }
 
   if (text) {
     const bubble = document.createElement('div');
@@ -1119,6 +1209,8 @@ function appendUserMessage(text, image){
         if (!newText) return;
         currentText = newText;
         if (transcriptEntry) transcriptEntry.text = newText;
+        historyEntry.text = newText;
+        saveCurrentModelHistory();
         restoreBubble(newText);
         requestAiReply(newText, image, activeId);
       });
@@ -1192,6 +1284,8 @@ function appendAiMessage(text, modelId, isError){
   chatThread.appendChild(el);
   scrollThreadToBottom();
   if (!isError) addToTranscript(m.name, text);
+  currentMessages.push({ role: 'ai', text, model: modelId, isError: !!isError });
+  saveCurrentModelHistory();
 }
 
 async function requestAiReply(promptText, image, modelId){
@@ -1322,14 +1416,3 @@ document.getElementById('thinkingPill').addEventListener('click', function(){
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
