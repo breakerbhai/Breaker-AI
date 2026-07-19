@@ -218,6 +218,7 @@
     transition:border-color .16s var(--ease), color .16s var(--ease), background .16s var(--ease);
   }
   .attach-btn:hover{ border-color:rgba(34,211,238,.4); color:var(--cyan-soft); background:rgba(34,211,238,.08); }
+  .attach-btn.active{ border-color:rgba(34,211,238,.6); color:var(--cyan-soft); background:rgba(34,211,238,.14); }
 
   .image-preview-chip{
     display:flex; align-items:center; gap:9px; max-width:640px; width:100%;
@@ -285,12 +286,13 @@
     background:var(--card-bg); border:1px solid var(--border); border-radius:16px;
     padding:10px 14px 14px; animation:msgIn .22s var(--ease);
     display:flex; flex-direction:column; gap:6px; overflow:hidden;
+    max-height:280px;
   }
   .chat-ad-label{
     font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
     color:var(--text-3);
   }
-  .chat-ad-slot ins.adsbygoogle{ width:100%; }
+  .chat-ad-slot ins.adsbygoogle{ width:100%; max-height:250px; overflow:hidden; }
 
   .msg-speak-btn, .msg-copy-btn{
     display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px;
@@ -530,6 +532,9 @@
             <button class="attach-btn" id="composerAttachBtn" type="button" aria-label="Attach image">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"/></svg>
             </button>
+            <button class="attach-btn" id="composerImageGenBtn" type="button" aria-label="Generate image" title="Generate an image">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            </button>
             <button class="btn btn-break" id="breakBtn">Break</button>
             <button class="btn btn-ask" id="askBtn">Ask
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -546,6 +551,9 @@
       <div class="reply-bar">
         <button class="attach-btn" id="replyAttachBtn" type="button" aria-label="Attach image">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"/></svg>
+        </button>
+        <button class="attach-btn" id="replyImageGenBtn" type="button" aria-label="Generate image" title="Generate an image">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
         </button>
         <input type="text" id="replyInput" placeholder="Reply to Claude..." aria-label="Reply input" />
         <button class="thinking-pill" id="thinkingPill">
@@ -872,6 +880,18 @@ let conversationStarted = false;
 const imageFileInput = document.getElementById('imageFileInput');
 const composerAttachBtn = document.getElementById('composerAttachBtn');
 const replyAttachBtn = document.getElementById('replyAttachBtn');
+const composerImageGenBtn = document.getElementById('composerImageGenBtn');
+const replyImageGenBtn = document.getElementById('replyImageGenBtn');
+let imageGenMode = false;
+function setImageGenMode(on){
+  imageGenMode = on;
+  composerImageGenBtn.classList.toggle('active', on);
+  replyImageGenBtn.classList.toggle('active', on);
+  mainInputEl.placeholder = on ? 'Describe the image you want...' : 'Ask anything — code, writing, research, or just a quick question.';
+  replyInput.placeholder = on ? 'Describe the image you want...' : 'Reply to Claude...';
+}
+composerImageGenBtn.addEventListener('click', () => setImageGenMode(!imageGenMode));
+replyImageGenBtn.addEventListener('click', () => setImageGenMode(!imageGenMode));
 const composerPreviewSlot = document.getElementById('composerPreviewSlot');
 const replyPreviewSlot = document.getElementById('replyPreviewSlot');
 let pendingImage = null; // { dataUrl, mimeType, name }
@@ -1145,7 +1165,7 @@ function loadAndRenderModelHistory(modelId){
     suppressHistorySave = true;
     saved.forEach(msg => {
       if (msg.role === 'user') appendUserMessage(msg.text, null);
-      else appendAiMessage(msg.text, msg.model || modelId, !!msg.isError);
+      else appendAiMessage(msg.text, msg.model || modelId, !!msg.isError, msg.image || null);
     });
     suppressHistorySave = false;
     conversationStarted = true;
@@ -1293,7 +1313,10 @@ function maybeInsertAd(){
          data-ad-layout="in-article"></ins>
   `;
   chatThread.appendChild(adWrap);
-  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  const slotId = adWrap.querySelector('ins').getAttribute('data-ad-slot');
+  if (slotId && slotId !== 'XXXXXXXXXX') {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  }
   scrollThreadToBottom();
 }
 
@@ -1318,7 +1341,7 @@ function stripMarkdown(str){
     .trim();
 }
 
-function appendAiMessage(text, modelId, isError){
+function appendAiMessage(text, modelId, isError, generatedImage){
   const cleanText = (!isError && text) ? stripMarkdown(text) : text;
   const m = MODELS.find(x => x.id === modelId);
   const el = document.createElement('div');
@@ -1338,18 +1361,25 @@ function appendAiMessage(text, modelId, isError){
   }
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
-  bubble.textContent = cleanText;
+  if (cleanText) bubble.textContent = cleanText;
+  if (!isError && generatedImage) {
+    const img = document.createElement('img');
+    img.src = generatedImage;
+    img.alt = 'Generated image';
+    img.style.cssText = 'display:block; width:100%; max-width:360px; border-radius:12px; margin-top:' + (cleanText ? '10px' : '0');
+    bubble.appendChild(img);
+  }
   el.appendChild(bubble);
   el.appendChild(meta);
   chatThread.appendChild(el);
   scrollThreadToBottom();
-  if (!isError) addToTranscript(m.name, cleanText);
-  currentMessages.push({ role: 'ai', text: cleanText, model: modelId, isError: !!isError });
+  if (!isError) addToTranscript(m.name, cleanText || '[image]');
+  currentMessages.push({ role: 'ai', text: cleanText, model: modelId, isError: !!isError, image: generatedImage || null });
   saveCurrentModelHistory();
   if (!isError) maybeInsertAd();
 }
 
-async function requestAiReply(promptText, image, modelId){
+async function requestAiReply(promptText, image, modelId, wantsImageGen){
   const typingEl = appendTypingBubble(modelId);
   try {
     if (!currentUser || !currentUser.idToken) {
@@ -1368,7 +1398,8 @@ async function requestAiReply(promptText, image, modelId){
       body: JSON.stringify({
         message: promptText || '',
         model: modelId,
-        image: image ? image.dataUrl : null
+        image: image ? image.dataUrl : null,
+        mode: wantsImageGen ? 'image' : 'text'
       })
     });
 
@@ -1383,7 +1414,7 @@ async function requestAiReply(promptText, image, modelId){
     typingEl.remove();
 
     if (response.ok) {
-      appendAiMessage(data.reply, modelId, false);
+      appendAiMessage(data.reply, modelId, false, data.image || null);
     } else {
       appendAiMessage(data.error || 'Something went wrong. Please try again.', modelId, true);
     }
@@ -1393,16 +1424,39 @@ async function requestAiReply(promptText, image, modelId){
   }
 }
 
+/* ---------- fixed identity answers: never routed to the actual AI backend ---------- */
+function detectIdentityReply(promptText){
+  if (!promptText) return null;
+  const t = promptText.toLowerCase();
+  const creatorPattern = /(who\s+(made|created|built|developed)\s+you|your\s+(creator|developer|maker)|kisne\s+banaya|banaya\s+kisne|tumhe\s+kisne|tumko\s+kisne|aapko\s+kisne)/;
+  const namePattern = /(what(?:'s| is)\s+your\s+name|your\s+name\s*\?|tumhara\s+naam|aapka\s+naam|tera\s+naam|naam\s+kya\s+hai)/;
+  if (creatorPattern.test(t)) return 'Breaker Bhai ne banaya hai mujhe! 🚀';
+  if (namePattern.test(t)) return 'Mera naam Breaker AI hai!';
+  return null;
+}
+
 async function sendMessage(promptText){
   if (!promptText && !pendingImage) return;
   const modelForThisMessage = activeId;
   const imageToSend = pendingImage;
+  const wantsImageGen = imageGenMode;
   pendingImage = null;
   renderImagePreview();
+  if (wantsImageGen) setImageGenMode(false);
 
   startConversation();
   appendUserMessage(promptText, imageToSend);
-  await requestAiReply(promptText, imageToSend, modelForThisMessage);
+
+  const cannedReply = detectIdentityReply(promptText);
+  if (cannedReply && !wantsImageGen) {
+    const typingEl = appendTypingBubble(modelForThisMessage);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    typingEl.remove();
+    appendAiMessage(cannedReply, modelForThisMessage, false);
+    return;
+  }
+
+  await requestAiReply(promptText, imageToSend, modelForThisMessage, wantsImageGen);
 }
 
 askBtn.addEventListener('click', async () => {
