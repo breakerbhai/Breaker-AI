@@ -114,6 +114,17 @@ exports.handler = async (event) => {
       return { statusCode: 200, body: JSON.stringify({ reply: result.text, image: result.image }) };
     }
 
+    // --- Natural voice request (the speaker icon under an AI reply) ---
+    // Replaces the browser's robotic built-in speechSynthesis with a real
+    // Gemini-generated voice, using the same GEMINI_KEY already in use.
+    if (mode === "tts") {
+      if (!message) {
+        return { statusCode: 400, body: JSON.stringify({ error: "No text to speak." }) };
+      }
+      const audioDataUrl = await callGeminiTTS(message);
+      return { statusCode: 200, body: JSON.stringify({ audio: audioDataUrl }) };
+    }
+
     let reply;
 
     if (model === "gemini") {
@@ -251,6 +262,67 @@ async function callGeminiImageGen(message) {
 
   return { text: text || "Yeh raha aapka image!", image: imageDataUrl };
 }
+
+// --- Natural voice via Gemini's TTS model ---
+// The API returns raw 16-bit/24kHz mono PCM (no container), so we wrap it in
+// a minimal WAV header ourselves before sending it back — that's what lets
+// the browser's <audio> tag play it directly from a data: URL.
+async function callGeminiTTS(text) {
+  // Keeps things speaking naturally without sounding rushed or flat.
+  const prompt = `Say in a warm, natural, conversational tone, at a normal relaxed pace: ${text}`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${process.env.GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }
+          }
+        }
+      })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Gemini TTS request failed");
+
+  const inline = data.candidates?.[0]?.content?.parts?.[0]?.inlineData
+    || data.candidates?.[0]?.content?.parts?.[0]?.inline_data;
+  if (!inline || !inline.data) {
+    throw new Error("Gemini didn't return audio for that text.");
+  }
+
+  const pcmBuffer = Buffer.from(inline.data, "base64");
+  const wavBuffer = pcmToWav(pcmBuffer, 24000, 1, 16);
+  return `data:audio/wav;base64,${wavBuffer.toString("base64")}`;
+}
+
+function pcmToWav(pcmBuffer, sampleRate, channels, bitDepth) {
+  const blockAlign = channels * (bitDepth / 8);
+  const byteRate = sampleRate * blockAlign;
+  const header = Buffer.alloc(44);
+
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcmBuffer.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);          // fmt chunk size
+  header.writeUInt16LE(1, 20);           // PCM format
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitDepth, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcmBuffer.length, 40);
+
+  return Buffer.concat([header, pcmBuffer]);
+}
+
 
 
 
