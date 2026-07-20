@@ -697,7 +697,17 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
     </div>
 
     <a href="assets.html" class="assets-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      <svg width="16" height="16" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="assetsBoltGrad" x1="20" y1="0" x2="80" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#CFFAFE"/>
+            <stop offset="45%" stop-color="#67E8F9"/>
+            <stop offset="100%" stop-color="#22D3EE"/>
+          </linearGradient>
+        </defs>
+        <path d="M60 6 L34 48 L48 48 L44 62 L58 46 L48 46 Z" fill="url(#assetsBoltGrad)"/>
+        <path d="M39 94 L64 52 L50 52 L54 38 L40 54 L50 54 Z" fill="url(#assetsBoltGrad)" opacity="0.92"/>
+      </svg>
       <span>Design Assets ke liye</span>
     </a>
     <div class="sidebar-footer" id="sidebarFooter"><span class="dot"></span> Connected · Local session</div>
@@ -1190,19 +1200,32 @@ function stopSpeaking(){
   currentSpeakBtn = null;
 }
 
-async function fetchGeminiTTS(chunkText){
+async function fetchGeminiTTS(chunkText, retries = 2){
   if (!currentUser || !currentUser.idToken) throw new Error('not signed in');
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + currentUser.idToken
-    },
-    body: JSON.stringify({ message: chunkText, mode: 'tts' })
-  });
-  const data = await response.json();
-  if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
-  return data.audio;
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + currentUser.idToken
+        },
+        body: JSON.stringify({ message: chunkText, mode: 'tts' })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
+      return data.audio;
+    } catch (err) {
+      lastErr = err;
+      // Transient failures (rate limit / flaky network) are common when we
+      // prefetch the next chunk right away — a short backoff before retrying
+      // clears most of them without ever touching the robotic fallback voice.
+      if (attempt < retries) await new Promise(r => setTimeout(r, 350 * (attempt + 1)));
+    }
+  }
+  console.warn('Gemini TTS failed after retries:', lastErr);
+  return null;
 }
 
 async function toggleSpeak(text, btn){
@@ -1230,11 +1253,14 @@ async function toggleSpeak(text, btn){
     }
 
     if (!audioUrl) {
-      // Only this chunk (and everything after it) falls back — whatever
-      // already played in Gemini's voice stays as-is instead of restarting
-      // the whole message in the robotic voice.
-      if (currentSpeakBtn === btn) browserSpeak(chunks.slice(i).join(' '), btn);
-      return;
+      // Even after retries this one chunk couldn't get a Gemini voice —
+      // speak just this chunk with the browser voice, then go straight back
+      // to trying Gemini for the next one instead of giving up on it for
+      // the rest of the message (that was the "robotic voice takes over
+      // and never lets go" bug).
+      await new Promise((resolve) => browserSpeakChunk(chunks[i], btn, resolve));
+      if (currentSpeakBtn !== btn) return;
+      continue;
     }
 
     btn.classList.remove('loading');
@@ -1253,6 +1279,26 @@ async function toggleSpeak(text, btn){
     }
   }
   stopSpeaking();
+}
+
+// Speaks a single chunk with the browser voice and resolves when done —
+// used as a one-off fallback for just the chunk that failed, so playback
+// can hop straight back to Gemini's voice on the next chunk.
+async function browserSpeakChunk(text, btn, onDone){
+  if (!('speechSynthesis' in window)) { onDone(); return; }
+  btn.classList.remove('loading');
+  btn.classList.add('speaking');
+
+  const voices = cachedVoices.length ? cachedVoices : await getVoicesReady();
+  const voice = pickBestVoice(voices, text);
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  if (voice) { utterance.voice = voice; utterance.lang = voice.lang; }
+  else if (/[\u0900-\u097F]/.test(text)) { utterance.lang = 'hi-IN'; }
+  utterance.onend = onDone;
+  utterance.onerror = onDone;
+  window.speechSynthesis.speak(utterance);
 }
 
 async function browserSpeak(text, btn){
@@ -1814,5 +1860,6 @@ document.getElementById('thinkingPill').addEventListener('click', function(){
 </script>
 </body>
 </html>
+
 
 
