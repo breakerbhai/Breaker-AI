@@ -1190,6 +1190,21 @@ function stopSpeaking(){
   currentSpeakBtn = null;
 }
 
+async function fetchGeminiTTS(chunkText){
+  if (!currentUser || !currentUser.idToken) throw new Error('not signed in');
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + currentUser.idToken
+    },
+    body: JSON.stringify({ message: chunkText, mode: 'tts' })
+  });
+  const data = await response.json();
+  if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
+  return data.audio;
+}
+
 async function toggleSpeak(text, btn){
   const isThisOneSpeaking = btn.classList.contains('speaking') || btn.classList.contains('loading');
   stopSpeaking();
@@ -1198,34 +1213,46 @@ async function toggleSpeak(text, btn){
   btn.classList.add('loading');
   currentSpeakBtn = btn;
 
-  try {
-    if (!currentUser || !currentUser.idToken) throw new Error('not signed in');
+  // Long replies get split into small pieces — Gemini's TTS model has an
+  // input-length ceiling, so one giant request on a long reply used to fail
+  // and silently drop the whole message to the robotic browser voice.
+  // Chunking keeps the natural voice going across the full reply instead.
+  const chunks = splitIntoChunks(text);
+  let nextAudioPromise = fetchGeminiTTS(chunks[0]).catch(() => null);
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + currentUser.idToken
-      },
-      body: JSON.stringify({ message: text, mode: 'tts' })
-    });
-    const data = await response.json();
-    if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
+  for (let i = 0; i < chunks.length; i++) {
+    if (currentSpeakBtn !== btn) return; // stopped/toggled off mid-playback
 
-    if (currentSpeakBtn !== btn) return; // user toggled it off while we were fetching
+    const audioUrl = await nextAudioPromise;
+    // start prefetching the next chunk while this one plays, to avoid gaps
+    if (i + 1 < chunks.length) {
+      nextAudioPromise = fetchGeminiTTS(chunks[i + 1]).catch(() => null);
+    }
+
+    if (!audioUrl) {
+      // Only this chunk (and everything after it) falls back — whatever
+      // already played in Gemini's voice stays as-is instead of restarting
+      // the whole message in the robotic voice.
+      if (currentSpeakBtn === btn) browserSpeak(chunks.slice(i).join(' '), btn);
+      return;
+    }
 
     btn.classList.remove('loading');
     btn.classList.add('speaking');
-    const audio = new Audio(data.audio);
+    const audio = new Audio(audioUrl);
     currentAudio = audio;
-    audio.onended = () => stopSpeaking();
-    audio.onerror = () => stopSpeaking();
-    await audio.play();
-  } catch (err) {
-    // Fall back to the browser's built-in voice if Gemini TTS isn't available
-    // (offline, quota hit, etc.) so the feature never goes fully silent.
-    if (currentSpeakBtn === btn) browserSpeak(text, btn);
+    try {
+      await new Promise((resolve, reject) => {
+        audio.onended = resolve;
+        audio.onerror = reject;
+        audio.play().catch(reject);
+      });
+    } catch {
+      stopSpeaking();
+      return;
+    }
   }
+  stopSpeaking();
 }
 
 async function browserSpeak(text, btn){
@@ -1787,4 +1814,5 @@ document.getElementById('thinkingPill').addEventListener('click', function(){
 </script>
 </body>
 </html>
+
 
