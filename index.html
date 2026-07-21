@@ -912,10 +912,13 @@ function signOut(){
   location.reload();
 }
 
-function initGoogleSignIn(){
+function initGoogleSignIn(attempt){
+  attempt = attempt || 0;
   if (!(window.google && google.accounts && google.accounts.id)) {
-    // GSI script hasn't loaded yet — retry shortly.
-    setTimeout(initGoogleSignIn, 200);
+    // GSI script hasn't loaded yet — retry shortly, but give up after ~8s
+    // (roughly 40 tries at 200ms) instead of looping silently forever.
+    if (attempt > 40) { showGoogleSignInError('load'); return; }
+    setTimeout(() => initGoogleSignIn(attempt + 1), 200);
     return;
   }
   google.accounts.id.initialize({
@@ -927,6 +930,27 @@ function initGoogleSignIn(){
     document.getElementById('googleBtnSlot'),
     { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', width: 260 }
   );
+
+  // Google renders the button asynchronously and, on failure (e.g. the
+  // page's origin isn't in the OAuth client's "Authorized JavaScript
+  // origins" list), fails SILENTLY — no exception, no visible message, the
+  // slot just stays empty. This checks a moment later and shows a real
+  // error instead of leaving a blank space where the button should be.
+  setTimeout(() => {
+    const slot = document.getElementById('googleBtnSlot');
+    if (slot && !slot.hasChildNodes()) showGoogleSignInError('render');
+  }, 2500);
+}
+
+function showGoogleSignInError(reason){
+  const errEl = document.getElementById('loginError');
+  if (!errEl) return;
+  errEl.innerHTML = reason === 'load'
+    ? 'Google Sign-In load nahi ho paya. Internet/network check karein aur <button id="retrySignInBtn" style="background:none;border:none;color:#67E8F9;text-decoration:underline;cursor:pointer;font:inherit;padding:0;">dobara try karein</button>.'
+    : 'Google button dikh nahi raha — is site ka domain Google Cloud Console ke OAuth Client mein "Authorized JavaScript origins" me add nahi hai shayad. <button id="retrySignInBtn" style="background:none;border:none;color:#67E8F9;text-decoration:underline;cursor:pointer;font:inherit;padding:0;">Dobara try karein</button>.';
+  errEl.classList.add('show');
+  const retryBtn = document.getElementById('retrySignInBtn');
+  if (retryBtn) retryBtn.addEventListener('click', () => location.reload());
 }
 
 // Google's ID token only lasts ~1 hour. Instead of forcing a full manual
@@ -1839,58 +1863,7 @@ async function sendMessage(promptText){
   if (wantsImageGen) setImageGenMode(false);
 
   startConversation();
-  appendUserMessage(promptText, imageToSend);
-
-  const cannedReply = detectIdentityReply(promptText);
-  if (cannedReply && !wantsImageGen) {
-    const typingEl = appendTypingBubble(modelForThisMessage);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    typingEl.remove();
-    appendAiMessage(cannedReply, modelForThisMessage, false);
-    return;
-  }
-
-  await requestAiReply(promptText, imageToSend, modelForThisMessage, wantsImageGen);
-}
-
-askBtn.addEventListener('click', async () => {
-  const promptText = mainInputEl.value.trim();
-  if (!promptText && !pendingImage) { alert('Please enter a prompt or attach an image before sending.'); return; }
-
-  const originalHTML = askBtn.innerHTML;
-  askBtn.innerText = 'Thinking...';
-  askBtn.disabled = true;
-  mainInputEl.value = '';
-
-  await sendMessage(promptText);
-
-  askBtn.innerHTML = originalHTML;
-  askBtn.disabled = false;
-});
-
-function sendReply(){
-  const text = replyInput.value.trim();
-  if (!text && !pendingImage) return;
-  replyInput.value = '';
-  sendMessage(text);
-}
-replySendBtn.addEventListener('click', sendReply);
-replyInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); sendReply(); }
-});
-/* ---------- composer chips fill the input ---------- */
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const input = document.getElementById('mainInput');
-    input.value = chip.dataset.fill;
-    input.focus();
-  });
-});
-
-/* ---------- mobile sidebar drawer ---------- */
-const sidebarEl = document.getElementById('sidebar');
-const backdropEl = document.getElementById('sidebarBackdrop');
-functio
+  appendUserMess
 
 
 
