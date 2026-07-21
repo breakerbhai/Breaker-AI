@@ -230,7 +230,7 @@ async function callGemini(message, image) {
 // return an inline image part when responseModalities includes "IMAGE".
 async function callGeminiImageGen(message) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${process.env.GEMINI_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -322,6 +322,12 @@ function pcmToWav(pcmBuffer, sampleRate, channels, bitDepth) {
 
   return Buffer.concat([header, pcmBuffer]);
 }
+
+
+
+
+
+
 
 
 
