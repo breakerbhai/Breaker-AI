@@ -300,40 +300,7 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
   }
   .mini-roundel svg{ width:60%; height:60%; }
 
-  .model-list{ flex-shrink:0; max-height:186px; overflow-y:auto; padding:14px 12px 8px; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid var(--border); }
-
-  .new-chat-btn{
-    flex-shrink:0; margin:10px 12px 2px; display:flex; align-items:center; justify-content:center; gap:8px;
-    padding:10px 12px; border-radius:11px; background:var(--card-bg); border:1px solid var(--border);
-    color:var(--text-1); font-size:13px; font-weight:700; transition:background .16s var(--ease), border-color .16s var(--ease);
-  }
-  .new-chat-btn:hover{ background:var(--card-bg-hover); border-color:rgba(34,211,238,.4); }
-
-  .history-section{ flex:1; min-height:0; overflow-y:auto; padding:8px 12px 14px; display:flex; flex-direction:column; gap:3px; }
-  .history-empty{ display:none; font-size:12px; color:var(--text-3); padding:8px; line-height:1.5; }
-  .history-section.empty .history-empty{ display:block; }
-
-  .history-item{
-    position:relative; display:flex; align-items:center; gap:9px; padding:9px 30px 9px 10px; border-radius:11px;
-    background:none; border:1px solid transparent; width:100%; text-align:left; cursor:pointer;
-    transition:background .16s var(--ease), border-color .16s var(--ease);
-  }
-  .history-item:hover{ background:rgba(255,255,255,.035); }
-  .history-item.active{
-    background:var(--card-bg-hover);
-    border-color:color-mix(in srgb, var(--cyan) 40%, transparent);
-  }
-  .history-item .mini-roundel{ width:26px; height:26px; flex-shrink:0; }
-  .history-item-text{ flex:1; min-width:0; }
-  .history-item-title{ font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .history-item-meta{ font-size:10.5px; color:var(--text-3); margin-top:1px; }
-  .history-item-delete{
-    position:absolute; right:6px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:7px;
-    display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0;
-    transition:opacity .14s var(--ease), background .14s var(--ease), color .14s var(--ease);
-  }
-  .history-item:hover .history-item-delete{ opacity:1; }
-  .history-item-delete:hover{ background:rgba(248,113,113,.15); color:#F87171; }
+  .model-list{ flex:1; overflow-y:auto; padding:14px 12px; display:flex; flex-direction:column; gap:3px; }
   .model-list-label{
     font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
     color:var(--text-3); padding:4px 8px 8px;
@@ -382,6 +349,39 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
     z-index:100;
   }
   .soon-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .chat-history{ padding:12px 12px 10px; border-top:1px solid var(--border); }
+  .new-chat-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:9px 10px; border-radius:11px; background:var(--card-bg); border:1px solid var(--border);
+    color:var(--text-1); font-size:12.5px; font-weight:700; margin-bottom:10px;
+    transition:background .16s var(--ease), border-color .16s var(--ease);
+  }
+  .new-chat-btn:hover{ background:var(--card-bg-hover); border-color:rgba(34,211,238,.4); }
+  .chat-list-label{
+    font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--text-3); padding:2px 8px 8px;
+  }
+  .chat-list{ max-height:190px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+  .chat-list-empty{ font-size:11.5px; color:var(--text-3); padding:6px 8px; }
+  .chat-row{
+    display:flex; align-items:center; gap:6px; padding:7px 8px; border-radius:9px;
+    cursor:pointer; transition:background .14s var(--ease);
+  }
+  .chat-row:hover{ background:rgba(255,255,255,.035); }
+  .chat-row.active{ background:var(--card-bg-hover); }
+  .chat-row-title{
+    flex:1; min-width:0; font-size:12px; color:var(--text-2); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .chat-row.active .chat-row-title{ color:var(--text-1); font-weight:600; }
+  .chat-row-del{
+    opacity:0; flex-shrink:0; width:18px; height:18px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; color:var(--text-3);
+    font-size:15px; line-height:1; transition:opacity .12s var(--ease), background .12s var(--ease), color .12s var(--ease);
+  }
+  .chat-row:hover .chat-row-del{ opacity:1; }
+  .chat-row-del:hover{ background:rgba(248,113,113,.15); color:#F87171; }
 
   .sidebar-footer{
     padding:14px 18px; border-top:1px solid var(--border); font-size:11px; color:var(--text-3);
@@ -729,15 +729,13 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
       <!-- rows injected by JS -->
     </div>
 
-    <button class="new-chat-btn" id="newChatBtn" type="button">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      <span>New Chat</span>
-    </button>
-
-    <div class="history-section" id="historySection">
-      <div class="model-list-label">Recent Chats</div>
-      <div id="historyList"></div>
-      <div class="history-empty" id="historyEmpty">Abhi tak koi purani chat save nahi hui hai</div>
+    <div class="chat-history">
+      <button class="new-chat-btn" id="newChatBtn" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        New Chat
+      </button>
+      <div class="chat-list-label">Recent Chats</div>
+      <div class="chat-list" id="chatList"></div>
     </div>
 
     <a href="assets.html" class="assets-link">
@@ -886,7 +884,7 @@ function unlockApp(){
   // next tick once the whole script has finished its first pass.
   setTimeout(() => {
     historyEnabled = true;
-    renderHistoryList();
+    loadModelChats(activeId);
   }, 0);
   startSilentRefreshTimer();
 }
@@ -1084,7 +1082,7 @@ MODELS.forEach(m => {
 
 /* ---------- "coming soon" toast ---------- */
 let soonToastTimer = null;
-function showSoonToast(name){
+function showToast(message, durationMs){
   let el = document.getElementById('soonToast');
   if (!el) {
     el = document.createElement('div');
@@ -1092,10 +1090,13 @@ function showSoonToast(name){
     el.className = 'soon-toast';
     document.body.appendChild(el);
   }
-  el.textContent = `${name} is coming soon`;
+  el.textContent = message;
   el.classList.add('show');
   clearTimeout(soonToastTimer);
-  soonToastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  soonToastTimer = setTimeout(() => el.classList.remove('show'), durationMs || 2000);
+}
+function showSoonToast(name){
+  showToast(`${name} is coming soon`);
 }
 
 function openDD(){ ddTrigger.classList.add('open'); ddMenu.classList.add('open'); }
@@ -1105,7 +1106,9 @@ document.addEventListener('click', (e) => { if (!document.getElementById('modelD
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDD(); });
 
 /* ---------- sync everything to active model ---------- */
-function syncModelUI(id){
+function setActive(id){
+  const previousId = activeId;
+  activeId = id;
   const m = MODELS.find(x => x.id === id);
 
   document.querySelectorAll('.model-row').forEach(r => r.classList.toggle('active', r.dataset.id === id));
@@ -1121,18 +1124,9 @@ function syncModelUI(id){
   document.getElementById('hintModelName').textContent = m.name;
 
   document.getElementById('replyInput').placeholder = `Reply to ${m.name}...`;
-}
 
-// Picking a model from the sidebar/dropdown switches who answers next — it
-// starts a fresh chat with that model rather than silently pulling an old
-// thread inline. Past chats (with any model) live in the "Recent Chats"
-// list and open individually via loadConversation().
-function setActive(id){
-  const previousId = activeId;
-  syncModelUI(id);
-  activeId = id;
-  if (id !== previousId && conversationStarted) {
-    startNewChat();
+  if (historyEnabled && id !== previousId) {
+    loadModelChats(id);
   }
 }
 setActive('gemini');
@@ -1168,49 +1162,25 @@ const composerPreviewSlot = document.getElementById('composerPreviewSlot');
 const replyPreviewSlot = document.getElementById('replyPreviewSlot');
 let pendingImage = null; // { dataUrl, mimeType, name }
 
-/* ---------- text-to-speech (free, browser-native, hardened) ---------- */
+/* ---------- safe JSON parsing for backend responses ---------- */
+// The backend is supposed to always answer with JSON, but Netlify (or any
+// proxy in front of it) can short-circuit a request — e.g. payload too big,
+// function timed out, cold-start error — and hand back an HTML error page
+// instead. response.json() then throws a raw "Unexpected token '<' ... is
+// not valid JSON" error that isn't useful to anyone. This reads the body as
+// text first and only tries to parse it, so we can show a clear message.
+async function safeJson(response){
+  const raw = await response.text();
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error('Server se sahi jawab nahi aaya (shayad request bahut bada tha ya timeout ho gaya). Chhoti image ya chhota message try karein.');
+  }
+}
+
+/* ---------- text-to-speech (Gemini's real voice only — no robotic fallback) ---------- */
 let currentSpeakBtn = null;
 let speakKeepAliveTimer = null;
-let cachedVoices = [];
-
-// Voices load asynchronously in Chrome/Edge — the list is often empty on the
-// very first call. This waits (with retries) until the browser has them ready.
-function getVoicesReady(){
-  return new Promise((resolve) => {
-    const existing = window.speechSynthesis.getVoices();
-    if (existing.length) { cachedVoices = existing; resolve(existing); return; }
-
-    let settled = false;
-    const finish = (voices) => {
-      if (settled) return;
-      settled = true;
-      cachedVoices = voices;
-      resolve(voices);
-    };
-
-    window.speechSynthesis.onvoiceschanged = () => finish(window.speechSynthesis.getVoices());
-    // Fallback poll in case onvoiceschanged never fires on this browser.
-    let attempts = 0;
-    const poll = setInterval(() => {
-      attempts++;
-      const v = window.speechSynthesis.getVoices();
-      if (v.length || attempts > 20) {
-        clearInterval(poll);
-        finish(v);
-      }
-    }, 150);
-  });
-}
-
-function pickBestVoice(voices, text){
-  if (!voices.length) return null;
-  const isHindi = /[\u0900-\u097F]/.test(text); // Devanagari script check
-  const byLang = (prefixes) => voices.find(v => prefixes.some(p => v.lang && v.lang.toLowerCase().startsWith(p)));
-  if (isHindi) {
-    return byLang(['hi-in', 'hi']) || byLang(['en-in']) || voices[0];
-  }
-  return byLang(['en-in']) || byLang(['en-us', 'en-gb']) || byLang(['en']) || voices[0];
-}
 
 // Chrome has a long-standing bug where speech silently stops after ~15s or
 // with long text. Splitting into sentence-sized chunks and queuing them back
@@ -1251,29 +1221,11 @@ async function fetchGeminiTTS(chunkText){
     },
     body: JSON.stringify({ message: chunkText, mode: 'tts' })
   });
-  const data = await response.json();
+  const data = await safeJson(response);
   if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
   return data.audio;
 }
 
-function showVoiceErrorToast(){
-  let el = document.getElementById('voiceErrorToast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'voiceErrorToast';
-    el.className = 'soon-toast';
-    document.body.appendChild(el);
-  }
-  el.textContent = 'Gemini voice abhi available nahi hai. Thodi der me try karein.';
-  el.classList.add('show');
-  clearTimeout(showVoiceErrorToast._t);
-  showVoiceErrorToast._t = setTimeout(() => el.classList.remove('show'), 2400);
-}
-
-// Only Gemini's real voice is ever used here — there is no robotic
-// browser-speechSynthesis fallback. If the Gemini TTS request fails (e.g.
-// the backend is unreachable), we stop and surface a clear error instead of
-// silently switching to a generic robotic voice.
 async function toggleSpeak(text, btn){
   const isThisOneSpeaking = btn.classList.contains('speaking') || btn.classList.contains('loading');
   stopSpeaking();
@@ -1283,8 +1235,8 @@ async function toggleSpeak(text, btn){
   currentSpeakBtn = btn;
 
   // Long replies get split into small pieces — Gemini's TTS model has an
-  // input-length ceiling, so one giant request on a long reply used to fail.
-  // Chunking keeps the natural voice going across the full reply instead.
+  // input-length ceiling, so one giant request on a long reply could fail.
+  // Chunking keeps Gemini's natural voice going across the full reply.
   const chunks = splitIntoChunks(text);
   let nextAudioPromise = fetchGeminiTTS(chunks[0]).catch(() => null);
 
@@ -1298,8 +1250,12 @@ async function toggleSpeak(text, btn){
     }
 
     if (!audioUrl) {
-      if (currentSpeakBtn === btn) showVoiceErrorToast();
-      stopSpeaking();
+      // No robotic browser fallback — if Gemini's voice can't be generated,
+      // stop and say so instead of switching to the flat built-in voice.
+      if (currentSpeakBtn === btn) {
+        stopSpeaking();
+        showToast('Awaaz generate nahi ho payi. Dobara try karein.');
+      }
       return;
     }
 
@@ -1314,7 +1270,6 @@ async function toggleSpeak(text, btn){
         audio.play().catch(reject);
       });
     } catch {
-      showVoiceErrorToast();
       stopSpeaking();
       return;
     }
@@ -1322,22 +1277,57 @@ async function toggleSpeak(text, btn){
   stopSpeaking();
 }
 
-// Warm up the voice list as early as possible.
-if ('speechSynthesis' in window) { getVoicesReady(); }
-
 function openFilePicker(){ imageFileInput.value = ''; imageFileInput.click(); }
 composerAttachBtn.addEventListener('click', openFilePicker);
 replyAttachBtn.addEventListener('click', openFilePicker);
+
+// Netlify functions reject request bodies above ~6MB, and a phone photo
+// straight out of the camera is often 8-15MB once base64-encoded. When that
+// happened before, the request never reached our function at all — Netlify's
+// own edge sent back an HTML error page instead of JSON, which is exactly
+// what caused the "Unexpected token '<' ... is not valid JSON" error after
+// attaching an image. Downscaling + re-compressing on the client keeps every
+// upload well under that limit.
+function compressImageDataUrl(dataUrl, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
 
 imageFileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
-  if (file.size > 8 * 1024 * 1024) { alert('Please choose an image under 8MB.'); return; }
+  if (file.size > 20 * 1024 * 1024) { alert('Please choose an image under 20MB.'); return; }
   const reader = new FileReader();
   reader.onload = () => {
-    pendingImage = { dataUrl: reader.result, mimeType: file.type, name: file.name };
-    renderImagePreview();
+    compressImageDataUrl(reader.result, 1280, 0.72)
+      .then(compressedDataUrl => {
+        pendingImage = { dataUrl: compressedDataUrl, mimeType: 'image/jpeg', name: file.name };
+        renderImagePreview();
+      })
+      .catch(() => {
+        // If compression fails for any reason, fall back to the original —
+        // still better than not sending anything.
+        pendingImage = { dataUrl: reader.result, mimeType: file.type, name: file.name };
+        renderImagePreview();
+      });
   };
   reader.readAsDataURL(file);
 });
@@ -1445,140 +1435,144 @@ function updateCopyChatBtnVisibility(){
   btn.classList.toggle('show', chatTranscript.length > 0);
 }
 
-/* ---------- chat history: real, separate conversations (saved locally per Google account) ----------
-   Each past chat is stored as its own record { id, modelId, title, messages, updatedAt } inside one
-   array per account, so the sidebar can list previous chats individually instead of dumping one
-   never-ending thread inline into the page. */
-let currentMessages = [];      // messages for the conversation currently open
-let currentConversationId = null;
+/* ---------- per-model chat history (saved locally per Google account) ---------- */
+let currentMessages = [];      // messages for the model currently open
 let suppressHistorySave = false;
-const MAX_SAVED_CONVERSATIONS = 60;
 
-function conversationsKey(){
+/* Each model now keeps a LIST of past conversations (not one long thread),
+   the way ChatGPT/Claude do — with a sidebar to browse and reopen them. */
+let activeConversationId = null;
+
+function conversationsKey(modelId){
   if (!currentUser || !currentUser.email) return null;
-  return 'breakerAiConversations:' + currentUser.email;
+  return 'breakerAiConvos:' + currentUser.email + ':' + modelId;
 }
-function getAllConversations(){
-  const key = conversationsKey();
+function getConversations(modelId){
+  const key = conversationsKey(modelId);
   if (!key) return [];
   try {
     const raw = localStorage.getItem(key);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
+    return raw ? JSON.parse(raw) : [];
   } catch (e) { return []; }
 }
-function saveAllConversations(list){
-  const key = conversationsKey();
+function saveConversations(modelId, list){
+  const key = conversationsKey(modelId);
   if (!key) return;
-  try { localStorage.setItem(key, JSON.stringify(list.slice(0, MAX_SAVED_CONVERSATIONS))); }
+  try { localStorage.setItem(key, JSON.stringify(list)); }
   catch (e) { /* storage full or blocked — chat still works, just won't persist */ }
 }
-function deriveConversationTitle(messages){
-  const firstUserMsg = messages.find(m => m.role === 'user' && m.text);
-  if (!firstUserMsg) return 'New chat';
-  const t = firstUserMsg.text.trim();
-  return t.length > 42 ? t.slice(0, 42).trim() + '…' : t;
+function conversationTitle(messages){
+  const firstUser = messages.find(m => m.role === 'user' && m.text);
+  if (!firstUser) return 'New chat';
+  const t = firstUser.text.trim();
+  return t.length > 42 ? t.slice(0, 42) + '…' : t;
 }
-function persistCurrentConversation(){
-  if (suppressHistorySave || !currentUser || !currentMessages.length) return;
-  const list = getAllConversations();
-  if (!currentConversationId) currentConversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const record = {
-    id: currentConversationId,
-    modelId: activeId,
-    title: deriveConversationTitle(currentMessages),
-    messages: currentMessages,
-    updatedAt: Date.now()
-  };
-  const idx = list.findIndex(c => c.id === currentConversationId);
-  if (idx >= 0) list[idx] = record; else list.unshift(record);
-  saveAllConversations(list);
-  renderHistoryList();
+function upsertActiveConversation(){
+  if (suppressHistorySave || !currentUser) return;
+  if (!currentMessages.length) return;
+  const list = getConversations(activeId);
+  if (!activeConversationId) activeConversationId = 'c' + Date.now() + Math.random().toString(36).slice(2, 7);
+  const idx = list.findIndex(c => c.id === activeConversationId);
+  const entry = { id: activeConversationId, title: conversationTitle(currentMessages), updatedAt: Date.now(), messages: currentMessages };
+  if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+  list.sort((a, b) => b.updatedAt - a.updatedAt);
+  saveConversations(activeId, list);
+  renderConversationList();
 }
-function timeAgo(ts){
-  const diffMin = Math.round((Date.now() - ts) / 60000);
-  if (diffMin < 1) return 'Abhi';
-  if (diffMin < 60) return diffMin + 'm pehle';
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return diffHr + 'h pehle';
-  const diffDay = Math.round(diffHr / 24);
-  if (diffDay < 7) return diffDay + 'd pehle';
-  return new Date(ts).toLocaleDateString();
-}
-function renderHistoryList(){
-  const historyListEl = document.getElementById('historyList');
-  const historySectionEl = document.getElementById('historySection');
-  if (!historyListEl) return;
-  historyListEl.innerHTML = '';
-  const list = getAllConversations().slice().sort((a, b) => b.updatedAt - a.updatedAt);
-  historySectionEl.classList.toggle('empty', list.length === 0);
-  list.forEach(conv => {
-    const m = MODELS.find(x => x.id === conv.modelId) || MODELS[0];
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'history-item' + (conv.id === currentConversationId ? ' active' : '');
-    row.innerHTML = `
-      <span class="mini-roundel" style="color:${m.accent}">${ICONS[m.id]}</span>
-      <div class="history-item-text">
-        <div class="history-item-title"></div>
-        <div class="history-item-meta">${m.name} · ${timeAgo(conv.updatedAt)}</div>
-      </div>
-      <span class="history-item-delete" aria-label="Delete chat">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </span>
-    `;
-    row.querySelector('.history-item-title').textContent = conv.title || 'New chat';
-    row.addEventListener('click', () => loadConversation(conv.id));
-    row.querySelector('.history-item-delete').addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteConversation(conv.id);
+
+function renderThreadFromMessages(messages){
+  chatThread.innerHTML = '';
+  chatTranscript = [];
+  currentMessages = [];
+  updateCopyChatBtnVisibility();
+
+  if (messages && messages.length) {
+    suppressHistorySave = true;
+    messages.forEach(msg => {
+      if (msg.role === 'user') appendUserMessage(msg.text, null);
+      else appendAiMessage(msg.text, msg.model || activeId, !!msg.isError, msg.image || null);
     });
-    historyListEl.appendChild(row);
-  });
+    suppressHistorySave = false;
+    conversationStarted = true;
+    composerCard.style.display = 'none';
+    chatThread.classList.add('active');
+    chatCenter.classList.add('has-messages');
+  } else {
+    conversationStarted = false;
+    composerCard.style.display = '';
+    chatThread.classList.remove('active');
+    chatCenter.classList.remove('has-messages');
+  }
 }
-function deleteConversation(id){
-  const list = getAllConversations().filter(c => c.id !== id);
-  saveAllConversations(list);
-  if (id === currentConversationId) startNewChat();
-  else renderHistoryList();
+
+function loadConversation(conv){
+  activeConversationId = conv ? conv.id : null;
+  renderThreadFromMessages(conv ? conv.messages : []);
+  renderConversationList();
 }
-function loadConversation(id){
-  const record = getAllConversations().find(c => c.id === id);
-  if (!record) return;
-  suppressHistorySave = true;
-  chatThread.innerHTML = '';
-  chatTranscript = [];
-  currentMessages = [];
-  const m = MODELS.find(x => x.id === record.modelId);
-  if (m) syncModelUI(record.modelId);
-  activeId = record.modelId;
-  record.messages.forEach(msg => {
-    if (msg.role === 'user') appendUserMessage(msg.text, null);
-    else appendAiMessage(msg.text, msg.model || record.modelId, !!msg.isError, msg.image || null);
-  });
-  suppressHistorySave = false;
-  currentConversationId = id;
-  conversationStarted = true;
-  composerCard.style.display = 'none';
-  chatThread.classList.add('active');
-  chatCenter.classList.add('has-messages');
-  updateCopyChatBtnVisibility();
-  renderHistoryList();
-  if (window.innerWidth <= 820) closeSidebar();
-}
+
 function startNewChat(){
-  chatThread.innerHTML = '';
-  chatTranscript = [];
-  currentMessages = [];
-  currentConversationId = null;
-  conversationStarted = false;
-  composerCard.style.display = '';
-  chatThread.classList.remove('active');
-  chatCenter.classList.remove('has-messages');
-  updateCopyChatBtnVisibility();
-  renderHistoryList();
+  stopSpeaking();
+  activeConversationId = null;
+  renderThreadFromMessages([]);
+  renderConversationList();
   if (window.innerWidth <= 820) closeSidebar();
+  mainInputEl.focus();
 }
+
+// Called on sign-in and on switching models: shows that model's most recent
+// conversation (if any) and refreshes the sidebar list underneath it.
+function loadModelChats(modelId){
+  const list = getConversations(modelId);
+  loadConversation(list[0] || null);
+}
+
+function renderConversationList(){
+  const wrap = document.getElementById('chatList');
+  if (!wrap) return;
+  const list = getConversations(activeId);
+  wrap.innerHTML = '';
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.className = 'chat-list-empty';
+    empty.textContent = 'Koi purani chat nahi hai';
+    wrap.appendChild(empty);
+    return;
+  }
+  list.forEach(conv => {
+    const row = document.createElement('div');
+    row.className = 'chat-row' + (conv.id === activeConversationId ? ' active' : '');
+
+    const title = document.createElement('span');
+    title.className = 'chat-row-title';
+    title.textContent = conv.title || 'New chat';
+    title.addEventListener('click', () => {
+      loadConversation(conv);
+      if (window.innerWidth <= 820) closeSidebar();
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'chat-row-del';
+    delBtn.setAttribute('aria-label', 'Delete this chat');
+    delBtn.innerHTML = '&times;';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const remaining = getConversations(activeId).filter(c => c.id !== conv.id);
+      saveConversations(activeId, remaining);
+      if (activeConversationId === conv.id) {
+        activeConversationId = null;
+        renderThreadFromMessages([]);
+      }
+      renderConversationList();
+    });
+
+    row.appendChild(title);
+    row.appendChild(delBtn);
+    wrap.appendChild(row);
+  });
+}
+document.getElementById('newChatBtn').addEventListener('click', startNewChat);
 
 function appendUserMessage(text, image){
   const el = document.createElement('div');
@@ -1594,7 +1588,7 @@ function appendUserMessage(text, image){
   let currentText = text;
   const transcriptEntry = addToTranscript('You', text);
   const historyEntry = { role: 'user', text };
-  if (text) { currentMessages.push(historyEntry); persistCurrentConversation(); }
+  if (text) { currentMessages.push(historyEntry); upsertActiveConversation(); }
 
   if (text) {
     const bubble = document.createElement('div');
@@ -1643,7 +1637,7 @@ function appendUserMessage(text, image){
         currentText = newText;
         if (transcriptEntry) transcriptEntry.text = newText;
         historyEntry.text = newText;
-        persistCurrentConversation();
+        upsertActiveConversation();
         restoreBubble(newText);
         requestAiReply(newText, image, activeId);
       });
@@ -1775,7 +1769,7 @@ function appendAiMessage(text, modelId, isError, generatedImage){
   scrollThreadToBottom();
   if (!isError) addToTranscript(m.name, cleanText || '[image]');
   currentMessages.push({ role: 'ai', text: cleanText, model: modelId, isError: !!isError, image: generatedImage || null });
-  persistCurrentConversation();
+  upsertActiveConversation();
   if (!isError) maybeInsertAd();
 }
 
@@ -1810,7 +1804,7 @@ async function requestAiReply(promptText, image, modelId, wantsImageGen){
       return;
     }
 
-    const data = await response.json();
+    const data = await safeJson(response);
     typingEl.remove();
 
     if (response.ok) {
@@ -1820,7 +1814,7 @@ async function requestAiReply(promptText, image, modelId, wantsImageGen){
     }
   } catch (error) {
     typingEl.remove();
-    appendAiMessage('Failed to connect to the backend server: ' + error.message, modelId, true);
+    appendAiMessage(error.message || 'Failed to connect to the backend server.', modelId, true);
   }
 }
 
@@ -1864,7 +1858,39 @@ askBtn.addEventListener('click', async () => {
   if (!promptText && !pendingImage) { alert('Please enter a prompt or attach an image before sending.'); return; }
 
   const originalHTML = askBtn.innerHTML;
-  askBtn.innerText = 'T
+  askBtn.innerText = 'Thinking...';
+  askBtn.disabled = true;
+  mainInputEl.value = '';
+
+  await sendMessage(promptText);
+
+  askBtn.innerHTML = originalHTML;
+  askBtn.disabled = false;
+});
+
+function sendReply(){
+  const text = replyInput.value.trim();
+  if (!text && !pendingImage) return;
+  replyInput.value = '';
+  sendMessage(text);
+}
+replySendBtn.addEventListener('click', sendReply);
+replyInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendReply(); }
+});
+/* ---------- composer chips fill the input ---------- */
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const input = document.getElementById('mainInput');
+    input.value = chip.dataset.fill;
+    input.focus();
+  });
+});
+
+/* ---------- mobile sidebar drawer ---------- */
+const sidebarEl = document.getElementById('sidebar');
+const backdropEl = document.getElementById('sidebarBackdrop');
+functio
 
 
 
