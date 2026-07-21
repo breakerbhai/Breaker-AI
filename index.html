@@ -1863,7 +1863,95 @@ async function sendMessage(promptText){
   if (wantsImageGen) setImageGenMode(false);
 
   startConversation();
-  appendUserMess
+  appendUserMessage(promptText, imageToSend);
+
+  const cannedReply = detectIdentityReply(promptText);
+  if (cannedReply && !wantsImageGen) {
+    const typingEl = appendTypingBubble(modelForThisMessage);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    typingEl.remove();
+    appendAiMessage(cannedReply, modelForThisMessage, false);
+    return;
+  }
+
+  await requestAiReply(promptText, imageToSend, modelForThisMessage, wantsImageGen);
+}
+
+askBtn.addEventListener('click', async () => {
+  const promptText = mainInputEl.value.trim();
+  if (!promptText && !pendingImage) { alert('Please enter a prompt or attach an image before sending.'); return; }
+
+  const originalHTML = askBtn.innerHTML;
+  askBtn.innerText = 'Thinking...';
+  askBtn.disabled = true;
+  mainInputEl.value = '';
+
+  await sendMessage(promptText);
+
+  askBtn.innerHTML = originalHTML;
+  askBtn.disabled = false;
+});
+
+function sendReply(){
+  const text = replyInput.value.trim();
+  if (!text && !pendingImage) return;
+  replyInput.value = '';
+  sendMessage(text);
+}
+replySendBtn.addEventListener('click', sendReply);
+replyInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendReply(); }
+});
+/* ---------- composer chips fill the input ---------- */
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const input = document.getElementById('mainInput');
+    input.value = chip.dataset.fill;
+    input.focus();
+  });
+});
+
+/* ---------- mobile sidebar drawer ---------- */
+const sidebarEl = document.getElementById('sidebar');
+const backdropEl = document.getElementById('sidebarBackdrop');
+function openSidebar(){ sidebarEl.classList.add('open'); backdropEl.classList.add('show'); }
+function closeSidebar(){ sidebarEl.classList.remove('open'); backdropEl.classList.remove('show'); }
+document.getElementById('mobileMenuBtn').addEventListener('click', openSidebar);
+document.getElementById('sidebarCloseBtn').addEventListener('click', closeSidebar);
+backdropEl.addEventListener('click', closeSidebar);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+// picking a model on mobile also closes the drawer
+modelList.addEventListener('click', () => { if (window.innerWidth <= 820) closeSidebar(); });
+
+/* ---------- copy entire chat in one go ---------- */
+const copyChatBtn = document.getElementById('copyChatBtn');
+const copyChatBtnLabel = document.getElementById('copyChatBtnLabel');
+copyChatBtn.addEventListener('click', async () => {
+  if (!chatTranscript.length) return;
+  const formatted = chatTranscript.map(m => `${m.role}:\n${m.text}`).join('\n\n');
+  const ok = await copyToClipboard(formatted);
+  if (ok) {
+    copyChatBtn.classList.add('copied');
+    const prevLabel = copyChatBtnLabel.textContent;
+    copyChatBtnLabel.textContent = 'Copied!';
+    setTimeout(() => {
+      copyChatBtn.classList.remove('copied');
+      copyChatBtnLabel.textContent = prevLabel;
+    }, 1500);
+  }
+});
+
+document.getElementById('thinkingPill').addEventListener('click', function(){
+  this.classList.toggle('active');
+  this.style.color = this.classList.contains('active') ? 'var(--cyan-soft)' : '';
+  this.style.borderColor = this.classList.contains('active') ? 'rgba(34,211,238,.5)' : '';
+});
+</script>
+</body>
+</html>
+
+
+
 
 
 
