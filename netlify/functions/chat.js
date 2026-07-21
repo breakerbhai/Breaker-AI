@@ -76,6 +76,22 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
+  // Netlify functions cap the request body around ~6MB. Above that the
+  // request never reaches this handler at all — Netlify's own edge returns
+  // an HTML error page instead of JSON, which is what broke JSON.parse on
+  // the frontend after attaching a large image. The frontend now compresses
+  // images before sending, but this check gives a clean error message for
+  // any request that still slips through too large (base64 adds ~33% size).
+  const bodySize = event.body
+    ? (event.isBase64Encoded ? Buffer.byteLength(event.body, "base64") : Buffer.byteLength(event.body, "utf8"))
+    : 0;
+  if (bodySize > 5.5 * 1024 * 1024) {
+    return {
+      statusCode: 413,
+      body: JSON.stringify({ error: "Image bahut badi hai. Kripya chhoti image try karein." })
+    };
+  }
+
   // --- Auth check: reject anything without a valid Google session ---
   const authHeader = event.headers.authorization || event.headers.Authorization || "";
   const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -230,7 +246,7 @@ async function callGemini(message, image) {
 // return an inline image part when responseModalities includes "IMAGE".
 async function callGeminiImageGen(message) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${process.env.GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -322,6 +338,12 @@ function pcmToWav(pcmBuffer, sampleRate, channels, bitDepth) {
 
   return Buffer.concat([header, pcmBuffer]);
 }
+
+
+
+
+
+
 
 
 
