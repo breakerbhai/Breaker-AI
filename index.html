@@ -300,7 +300,40 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
   }
   .mini-roundel svg{ width:60%; height:60%; }
 
-  .model-list{ flex:1; overflow-y:auto; padding:14px 12px; display:flex; flex-direction:column; gap:3px; }
+  .model-list{ flex-shrink:0; max-height:186px; overflow-y:auto; padding:14px 12px 8px; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid var(--border); }
+
+  .new-chat-btn{
+    flex-shrink:0; margin:10px 12px 2px; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px 12px; border-radius:11px; background:var(--card-bg); border:1px solid var(--border);
+    color:var(--text-1); font-size:13px; font-weight:700; transition:background .16s var(--ease), border-color .16s var(--ease);
+  }
+  .new-chat-btn:hover{ background:var(--card-bg-hover); border-color:rgba(34,211,238,.4); }
+
+  .history-section{ flex:1; min-height:0; overflow-y:auto; padding:8px 12px 14px; display:flex; flex-direction:column; gap:3px; }
+  .history-empty{ display:none; font-size:12px; color:var(--text-3); padding:8px; line-height:1.5; }
+  .history-section.empty .history-empty{ display:block; }
+
+  .history-item{
+    position:relative; display:flex; align-items:center; gap:9px; padding:9px 30px 9px 10px; border-radius:11px;
+    background:none; border:1px solid transparent; width:100%; text-align:left; cursor:pointer;
+    transition:background .16s var(--ease), border-color .16s var(--ease);
+  }
+  .history-item:hover{ background:rgba(255,255,255,.035); }
+  .history-item.active{
+    background:var(--card-bg-hover);
+    border-color:color-mix(in srgb, var(--cyan) 40%, transparent);
+  }
+  .history-item .mini-roundel{ width:26px; height:26px; flex-shrink:0; }
+  .history-item-text{ flex:1; min-width:0; }
+  .history-item-title{ font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history-item-meta{ font-size:10.5px; color:var(--text-3); margin-top:1px; }
+  .history-item-delete{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:7px;
+    display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0;
+    transition:opacity .14s var(--ease), background .14s var(--ease), color .14s var(--ease);
+  }
+  .history-item:hover .history-item-delete{ opacity:1; }
+  .history-item-delete:hover{ background:rgba(248,113,113,.15); color:#F87171; }
   .model-list-label{
     font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
     color:var(--text-3); padding:4px 8px 8px;
@@ -696,18 +729,19 @@ RScL2Myni7O2Vuiy1eruo8P1zoE3Ww3tbLwHwgE6a46O5zq/s/FpXosWCUGLtG7VvOXLTvi5Riu8xG6J
       <!-- rows injected by JS -->
     </div>
 
+    <button class="new-chat-btn" id="newChatBtn" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>New Chat</span>
+    </button>
+
+    <div class="history-section" id="historySection">
+      <div class="model-list-label">Recent Chats</div>
+      <div id="historyList"></div>
+      <div class="history-empty" id="historyEmpty">Abhi tak koi purani chat save nahi hui hai</div>
+    </div>
+
     <a href="assets.html" class="assets-link">
-      <svg width="16" height="16" viewBox="0 0 100 100">
-        <defs>
-          <linearGradient id="assetsBoltGrad" x1="20" y1="0" x2="80" y2="100" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#CFFAFE"/>
-            <stop offset="45%" stop-color="#67E8F9"/>
-            <stop offset="100%" stop-color="#22D3EE"/>
-          </linearGradient>
-        </defs>
-        <path d="M60 6 L34 48 L48 48 L44 62 L58 46 L48 46 Z" fill="url(#assetsBoltGrad)"/>
-        <path d="M39 94 L64 52 L50 52 L54 38 L40 54 L50 54 Z" fill="url(#assetsBoltGrad)" opacity="0.92"/>
-      </svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
       <span>Design Assets ke liye</span>
     </a>
     <div class="sidebar-footer" id="sidebarFooter"><span class="dot"></span> Connected · Local session</div>
@@ -852,7 +886,7 @@ function unlockApp(){
   // next tick once the whole script has finished its first pass.
   setTimeout(() => {
     historyEnabled = true;
-    loadAndRenderModelHistory(activeId);
+    renderHistoryList();
   }, 0);
   startSilentRefreshTimer();
 }
@@ -1071,9 +1105,7 @@ document.addEventListener('click', (e) => { if (!document.getElementById('modelD
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDD(); });
 
 /* ---------- sync everything to active model ---------- */
-function setActive(id){
-  const previousId = activeId;
-  activeId = id;
+function syncModelUI(id){
   const m = MODELS.find(x => x.id === id);
 
   document.querySelectorAll('.model-row').forEach(r => r.classList.toggle('active', r.dataset.id === id));
@@ -1089,9 +1121,18 @@ function setActive(id){
   document.getElementById('hintModelName').textContent = m.name;
 
   document.getElementById('replyInput').placeholder = `Reply to ${m.name}...`;
+}
 
-  if (historyEnabled && id !== previousId) {
-    loadAndRenderModelHistory(id);
+// Picking a model from the sidebar/dropdown switches who answers next — it
+// starts a fresh chat with that model rather than silently pulling an old
+// thread inline. Past chats (with any model) live in the "Recent Chats"
+// list and open individually via loadConversation().
+function setActive(id){
+  const previousId = activeId;
+  syncModelUI(id);
+  activeId = id;
+  if (id !== previousId && conversationStarted) {
+    startNewChat();
   }
 }
 setActive('gemini');
@@ -1200,34 +1241,39 @@ function stopSpeaking(){
   currentSpeakBtn = null;
 }
 
-async function fetchGeminiTTS(chunkText, retries = 2){
+async function fetchGeminiTTS(chunkText){
   if (!currentUser || !currentUser.idToken) throw new Error('not signed in');
-  let lastErr = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + currentUser.idToken
-        },
-        body: JSON.stringify({ message: chunkText, mode: 'tts' })
-      });
-      const data = await response.json();
-      if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
-      return data.audio;
-    } catch (err) {
-      lastErr = err;
-      // Transient failures (rate limit / flaky network) are common when we
-      // prefetch the next chunk right away — a short backoff before retrying
-      // clears most of them without ever touching the robotic fallback voice.
-      if (attempt < retries) await new Promise(r => setTimeout(r, 350 * (attempt + 1)));
-    }
-  }
-  console.warn('Gemini TTS failed after retries:', lastErr);
-  return null;
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + currentUser.idToken
+    },
+    body: JSON.stringify({ message: chunkText, mode: 'tts' })
+  });
+  const data = await response.json();
+  if (!response.ok || !data.audio) throw new Error(data.error || 'TTS request failed');
+  return data.audio;
 }
 
+function showVoiceErrorToast(){
+  let el = document.getElementById('voiceErrorToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'voiceErrorToast';
+    el.className = 'soon-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = 'Gemini voice abhi available nahi hai. Thodi der me try karein.';
+  el.classList.add('show');
+  clearTimeout(showVoiceErrorToast._t);
+  showVoiceErrorToast._t = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// Only Gemini's real voice is ever used here — there is no robotic
+// browser-speechSynthesis fallback. If the Gemini TTS request fails (e.g.
+// the backend is unreachable), we stop and surface a clear error instead of
+// silently switching to a generic robotic voice.
 async function toggleSpeak(text, btn){
   const isThisOneSpeaking = btn.classList.contains('speaking') || btn.classList.contains('loading');
   stopSpeaking();
@@ -1237,8 +1283,7 @@ async function toggleSpeak(text, btn){
   currentSpeakBtn = btn;
 
   // Long replies get split into small pieces — Gemini's TTS model has an
-  // input-length ceiling, so one giant request on a long reply used to fail
-  // and silently drop the whole message to the robotic browser voice.
+  // input-length ceiling, so one giant request on a long reply used to fail.
   // Chunking keeps the natural voice going across the full reply instead.
   const chunks = splitIntoChunks(text);
   let nextAudioPromise = fetchGeminiTTS(chunks[0]).catch(() => null);
@@ -1253,14 +1298,9 @@ async function toggleSpeak(text, btn){
     }
 
     if (!audioUrl) {
-      // Even after retries this one chunk couldn't get a Gemini voice —
-      // speak just this chunk with the browser voice, then go straight back
-      // to trying Gemini for the next one instead of giving up on it for
-      // the rest of the message (that was the "robotic voice takes over
-      // and never lets go" bug).
-      await new Promise((resolve) => browserSpeakChunk(chunks[i], btn, resolve));
-      if (currentSpeakBtn !== btn) return;
-      continue;
+      if (currentSpeakBtn === btn) showVoiceErrorToast();
+      stopSpeaking();
+      return;
     }
 
     btn.classList.remove('loading');
@@ -1274,67 +1314,12 @@ async function toggleSpeak(text, btn){
         audio.play().catch(reject);
       });
     } catch {
+      showVoiceErrorToast();
       stopSpeaking();
       return;
     }
   }
   stopSpeaking();
-}
-
-// Speaks a single chunk with the browser voice and resolves when done —
-// used as a one-off fallback for just the chunk that failed, so playback
-// can hop straight back to Gemini's voice on the next chunk.
-async function browserSpeakChunk(text, btn, onDone){
-  if (!('speechSynthesis' in window)) { onDone(); return; }
-  btn.classList.remove('loading');
-  btn.classList.add('speaking');
-
-  const voices = cachedVoices.length ? cachedVoices : await getVoicesReady();
-  const voice = pickBestVoice(voices, text);
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  if (voice) { utterance.voice = voice; utterance.lang = voice.lang; }
-  else if (/[\u0900-\u097F]/.test(text)) { utterance.lang = 'hi-IN'; }
-  utterance.onend = onDone;
-  utterance.onerror = onDone;
-  window.speechSynthesis.speak(utterance);
-}
-
-async function browserSpeak(text, btn){
-  if (!('speechSynthesis' in window)) {
-    stopSpeaking();
-    return;
-  }
-  btn.classList.remove('loading');
-  btn.classList.add('speaking');
-  currentSpeakBtn = btn;
-
-  const voices = cachedVoices.length ? cachedVoices : await getVoicesReady();
-  const voice = pickBestVoice(voices, text);
-  const chunks = splitIntoChunks(text);
-  let index = 0;
-
-  const speakNext = () => {
-    if (index >= chunks.length || currentSpeakBtn !== btn) {
-      stopSpeaking();
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    if (voice) { utterance.voice = voice; utterance.lang = voice.lang; }
-    else if (/[\u0900-\u097F]/.test(chunks[index])) { utterance.lang = 'hi-IN'; }
-    utterance.onend = () => { index++; speakNext(); };
-    utterance.onerror = () => { stopSpeaking(); };
-    window.speechSynthesis.speak(utterance);
-  };
-
-  speakKeepAliveTimer = setInterval(() => {
-    if (window.speechSynthesis.speaking) window.speechSynthesis.resume();
-  }, 4000);
-
-  speakNext();
 }
 
 // Warm up the voice list as early as possible.
@@ -1460,53 +1445,139 @@ function updateCopyChatBtnVisibility(){
   btn.classList.toggle('show', chatTranscript.length > 0);
 }
 
-/* ---------- per-model chat history (saved locally per Google account) ---------- */
-let currentMessages = [];      // messages for the model currently open
+/* ---------- chat history: real, separate conversations (saved locally per Google account) ----------
+   Each past chat is stored as its own record { id, modelId, title, messages, updatedAt } inside one
+   array per account, so the sidebar can list previous chats individually instead of dumping one
+   never-ending thread inline into the page. */
+let currentMessages = [];      // messages for the conversation currently open
+let currentConversationId = null;
 let suppressHistorySave = false;
+const MAX_SAVED_CONVERSATIONS = 60;
 
-function historyKey(modelId){
+function conversationsKey(){
   if (!currentUser || !currentUser.email) return null;
-  return 'breakerAiHistory:' + currentUser.email + ':' + modelId;
+  return 'breakerAiConversations:' + currentUser.email;
 }
-function getHistoryForModel(modelId){
-  const key = historyKey(modelId);
+function getAllConversations(){
+  const key = conversationsKey();
   if (!key) return [];
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
   } catch (e) { return []; }
 }
-function saveCurrentModelHistory(){
-  if (suppressHistorySave || !currentUser) return;
-  const key = historyKey(activeId);
+function saveAllConversations(list){
+  const key = conversationsKey();
   if (!key) return;
-  try { localStorage.setItem(key, JSON.stringify(currentMessages)); }
+  try { localStorage.setItem(key, JSON.stringify(list.slice(0, MAX_SAVED_CONVERSATIONS))); }
   catch (e) { /* storage full or blocked — chat still works, just won't persist */ }
 }
-function loadAndRenderModelHistory(modelId){
+function deriveConversationTitle(messages){
+  const firstUserMsg = messages.find(m => m.role === 'user' && m.text);
+  if (!firstUserMsg) return 'New chat';
+  const t = firstUserMsg.text.trim();
+  return t.length > 42 ? t.slice(0, 42).trim() + '…' : t;
+}
+function persistCurrentConversation(){
+  if (suppressHistorySave || !currentUser || !currentMessages.length) return;
+  const list = getAllConversations();
+  if (!currentConversationId) currentConversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const record = {
+    id: currentConversationId,
+    modelId: activeId,
+    title: deriveConversationTitle(currentMessages),
+    messages: currentMessages,
+    updatedAt: Date.now()
+  };
+  const idx = list.findIndex(c => c.id === currentConversationId);
+  if (idx >= 0) list[idx] = record; else list.unshift(record);
+  saveAllConversations(list);
+  renderHistoryList();
+}
+function timeAgo(ts){
+  const diffMin = Math.round((Date.now() - ts) / 60000);
+  if (diffMin < 1) return 'Abhi';
+  if (diffMin < 60) return diffMin + 'm pehle';
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'h pehle';
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 7) return diffDay + 'd pehle';
+  return new Date(ts).toLocaleDateString();
+}
+function renderHistoryList(){
+  const historyListEl = document.getElementById('historyList');
+  const historySectionEl = document.getElementById('historySection');
+  if (!historyListEl) return;
+  historyListEl.innerHTML = '';
+  const list = getAllConversations().slice().sort((a, b) => b.updatedAt - a.updatedAt);
+  historySectionEl.classList.toggle('empty', list.length === 0);
+  list.forEach(conv => {
+    const m = MODELS.find(x => x.id === conv.modelId) || MODELS[0];
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'history-item' + (conv.id === currentConversationId ? ' active' : '');
+    row.innerHTML = `
+      <span class="mini-roundel" style="color:${m.accent}">${ICONS[m.id]}</span>
+      <div class="history-item-text">
+        <div class="history-item-title"></div>
+        <div class="history-item-meta">${m.name} · ${timeAgo(conv.updatedAt)}</div>
+      </div>
+      <span class="history-item-delete" aria-label="Delete chat">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </span>
+    `;
+    row.querySelector('.history-item-title').textContent = conv.title || 'New chat';
+    row.addEventListener('click', () => loadConversation(conv.id));
+    row.querySelector('.history-item-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteConversation(conv.id);
+    });
+    historyListEl.appendChild(row);
+  });
+}
+function deleteConversation(id){
+  const list = getAllConversations().filter(c => c.id !== id);
+  saveAllConversations(list);
+  if (id === currentConversationId) startNewChat();
+  else renderHistoryList();
+}
+function loadConversation(id){
+  const record = getAllConversations().find(c => c.id === id);
+  if (!record) return;
+  suppressHistorySave = true;
   chatThread.innerHTML = '';
   chatTranscript = [];
   currentMessages = [];
+  const m = MODELS.find(x => x.id === record.modelId);
+  if (m) syncModelUI(record.modelId);
+  activeId = record.modelId;
+  record.messages.forEach(msg => {
+    if (msg.role === 'user') appendUserMessage(msg.text, null);
+    else appendAiMessage(msg.text, msg.model || record.modelId, !!msg.isError, msg.image || null);
+  });
+  suppressHistorySave = false;
+  currentConversationId = id;
+  conversationStarted = true;
+  composerCard.style.display = 'none';
+  chatThread.classList.add('active');
+  chatCenter.classList.add('has-messages');
   updateCopyChatBtnVisibility();
-
-  const saved = getHistoryForModel(modelId);
-  if (saved && saved.length) {
-    suppressHistorySave = true;
-    saved.forEach(msg => {
-      if (msg.role === 'user') appendUserMessage(msg.text, null);
-      else appendAiMessage(msg.text, msg.model || modelId, !!msg.isError, msg.image || null);
-    });
-    suppressHistorySave = false;
-    conversationStarted = true;
-    composerCard.style.display = 'none';
-    chatThread.classList.add('active');
-    chatCenter.classList.add('has-messages');
-  } else {
-    conversationStarted = false;
-    composerCard.style.display = '';
-    chatThread.classList.remove('active');
-    chatCenter.classList.remove('has-messages');
-  }
+  renderHistoryList();
+  if (window.innerWidth <= 820) closeSidebar();
+}
+function startNewChat(){
+  chatThread.innerHTML = '';
+  chatTranscript = [];
+  currentMessages = [];
+  currentConversationId = null;
+  conversationStarted = false;
+  composerCard.style.display = '';
+  chatThread.classList.remove('active');
+  chatCenter.classList.remove('has-messages');
+  updateCopyChatBtnVisibility();
+  renderHistoryList();
+  if (window.innerWidth <= 820) closeSidebar();
 }
 
 function appendUserMessage(text, image){
@@ -1523,7 +1594,7 @@ function appendUserMessage(text, image){
   let currentText = text;
   const transcriptEntry = addToTranscript('You', text);
   const historyEntry = { role: 'user', text };
-  if (text) { currentMessages.push(historyEntry); saveCurrentModelHistory(); }
+  if (text) { currentMessages.push(historyEntry); persistCurrentConversation(); }
 
   if (text) {
     const bubble = document.createElement('div');
@@ -1572,7 +1643,7 @@ function appendUserMessage(text, image){
         currentText = newText;
         if (transcriptEntry) transcriptEntry.text = newText;
         historyEntry.text = newText;
-        saveCurrentModelHistory();
+        persistCurrentConversation();
         restoreBubble(newText);
         requestAiReply(newText, image, activeId);
       });
@@ -1704,7 +1775,7 @@ function appendAiMessage(text, modelId, isError, generatedImage){
   scrollThreadToBottom();
   if (!isError) addToTranscript(m.name, cleanText || '[image]');
   currentMessages.push({ role: 'ai', text: cleanText, model: modelId, isError: !!isError, image: generatedImage || null });
-  saveCurrentModelHistory();
+  persistCurrentConversation();
   if (!isError) maybeInsertAd();
 }
 
@@ -1793,73 +1864,7 @@ askBtn.addEventListener('click', async () => {
   if (!promptText && !pendingImage) { alert('Please enter a prompt or attach an image before sending.'); return; }
 
   const originalHTML = askBtn.innerHTML;
-  askBtn.innerText = 'Thinking...';
-  askBtn.disabled = true;
-  mainInputEl.value = '';
-
-  await sendMessage(promptText);
-
-  askBtn.innerHTML = originalHTML;
-  askBtn.disabled = false;
-});
-
-function sendReply(){
-  const text = replyInput.value.trim();
-  if (!text && !pendingImage) return;
-  replyInput.value = '';
-  sendMessage(text);
-}
-replySendBtn.addEventListener('click', sendReply);
-replyInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); sendReply(); }
-});
-/* ---------- composer chips fill the input ---------- */
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const input = document.getElementById('mainInput');
-    input.value = chip.dataset.fill;
-    input.focus();
-  });
-});
-
-/* ---------- mobile sidebar drawer ---------- */
-const sidebarEl = document.getElementById('sidebar');
-const backdropEl = document.getElementById('sidebarBackdrop');
-function openSidebar(){ sidebarEl.classList.add('open'); backdropEl.classList.add('show'); }
-function closeSidebar(){ sidebarEl.classList.remove('open'); backdropEl.classList.remove('show'); }
-document.getElementById('mobileMenuBtn').addEventListener('click', openSidebar);
-document.getElementById('sidebarCloseBtn').addEventListener('click', closeSidebar);
-backdropEl.addEventListener('click', closeSidebar);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
-// picking a model on mobile also closes the drawer
-modelList.addEventListener('click', () => { if (window.innerWidth <= 820) closeSidebar(); });
-
-/* ---------- copy entire chat in one go ---------- */
-const copyChatBtn = document.getElementById('copyChatBtn');
-const copyChatBtnLabel = document.getElementById('copyChatBtnLabel');
-copyChatBtn.addEventListener('click', async () => {
-  if (!chatTranscript.length) return;
-  const formatted = chatTranscript.map(m => `${m.role}:\n${m.text}`).join('\n\n');
-  const ok = await copyToClipboard(formatted);
-  if (ok) {
-    copyChatBtn.classList.add('copied');
-    const prevLabel = copyChatBtnLabel.textContent;
-    copyChatBtnLabel.textContent = 'Copied!';
-    setTimeout(() => {
-      copyChatBtn.classList.remove('copied');
-      copyChatBtnLabel.textContent = prevLabel;
-    }, 1500);
-  }
-});
-
-document.getElementById('thinkingPill').addEventListener('click', function(){
-  this.classList.toggle('active');
-  this.style.color = this.classList.contains('active') ? 'var(--cyan-soft)' : '';
-  this.style.borderColor = this.classList.contains('active') ? 'rgba(34,211,238,.5)' : '';
-});
-</script>
-</body>
-</html>
+  askBtn.innerText = 'T
 
 
 
